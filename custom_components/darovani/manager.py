@@ -228,6 +228,7 @@ class DonationManager:
         self.data.setdefault("block_reason", None)
         self.data.setdefault("snoozed_until", None)
         self.data.setdefault("flow", None)
+        self.data.setdefault("cancelled_keys", [])
         # Rozpracovaný tok po restartu nemá platný kód – zahodit čekání
         if self.data["flow"]:
             self.data["flow"]["awaiting"] = None
@@ -427,6 +428,10 @@ class DonationManager:
     async def _apply_mail(self, ev: Any) -> None:
         start = ev.start
         if ev.type == MAIL_NEW:
+            if ev.key and ev.key in self.data["cancelled_keys"]:
+                return  # zrušeno přes modul (FNUSA k tomu storno mail neposílá)
+            if self._find(ev.kind, start, (RES_CANCELLED,)) and not self._find(ev.kind, start, (RES_RESERVED, RES_DONE)):
+                return
             res = self._find(ev.kind, start, (RES_RESERVED, RES_DONE))
             if res is None:
                 res = self._add_reservation(ev.kind, start, "email")
@@ -658,6 +663,7 @@ class DonationManager:
             flow["error"] = str(err)
             return False
         res["status"] = RES_CANCELLED
+        self._remember_cancelled(res)
         await self._remove_event(res)
         self.data["notified"] = {}
         return True
@@ -736,6 +742,23 @@ class DonationManager:
     async def clear_deferral(self) -> None:
         self.data["blocked_until"] = None
         self.data["block_reason"] = None
+        self.data["notified"] = {}
+        await self._maybe_offer()
+        await self._save()
+        self._changed()
+
+    def _remember_cancelled(self, res: dict[str, Any]) -> None:
+        if res.get("key") and res["key"] not in self.data["cancelled_keys"]:
+            self.data["cancelled_keys"] = (self.data["cancelled_keys"] + [res["key"]])[-200:]
+
+    async def forget(self, res_id: str) -> None:
+        """Rezervace už byla zrušená jinde – jen ji odebrat z modulu a kalendáře."""
+        res = self._res().get(res_id)
+        if not res or res["status"] != RES_RESERVED:
+            raise FnusaError("Rezervace nenalezena.")
+        res["status"] = RES_CANCELLED
+        self._remember_cancelled(res)
+        await self._remove_event(res)
         self.data["notified"] = {}
         await self._maybe_offer()
         await self._save()

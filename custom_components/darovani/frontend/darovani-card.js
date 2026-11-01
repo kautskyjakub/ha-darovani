@@ -160,6 +160,7 @@ class DarovaniCard extends HTMLElement {
       case "cancel-ask": ui.confirmCancel = v; break;
       case "cancel-no": ui.confirmCancel = null; break;
       case "cancel-yes": ui.confirmCancel = null; return this._call("cancel_reservation", { reservation_id: v });
+      case "forget": ui.confirmCancel = null; return this._call("forget_reservation", { reservation_id: v });
       case "postpone": ui.postpone = !ui.postpone; if (ui.postpone) return this._loadPreview(); break;
       case "pp-days": ui.postponeDays = Number(v); return this._loadPreview();
       case "pp-reason": ui.postponeReason = v; break;
@@ -322,6 +323,7 @@ class DarovaniCard extends HTMLElement {
           ${confirming
             ? `<span class="muted">Zrušit u nemocnice? Přijde SMS kód.</span>
                <span class="grow"></span>
+               <button class="link small" data-a="forget" data-v="${n.id}">Už je zrušená</button>
                <button class="ghost" data-a="cancel-no">Ne</button>
                <button class="danger" data-a="cancel-yes" data-v="${n.id}">Zrušit rezervaci</button>`
             : `${n.admin_url ? `<a class="ghost" href="${esc(n.admin_url)}" target="_blank" rel="noreferrer">Správa u FNUSA</a>` : `<span class="muted small">Odkaz pro správu dorazí e-mailem…</span>`}
@@ -339,7 +341,7 @@ class DarovaniCard extends HTMLElement {
         ${this._kindDot(r.kind)}
         <span class="li-main"><b>${KIND[r.kind].label}</b> · ${day(r.start)} · ${time(r.start)}</span>
         ${confirming
-          ? `<button class="ghost sm" data-a="cancel-no">Ne</button><button class="danger sm" data-a="cancel-yes" data-v="${r.id}">Zrušit</button>`
+          ? `<button class="link small" data-a="forget" data-v="${r.id}">Už je zrušená</button><button class="ghost sm" data-a="cancel-no">Ne</button><button class="danger sm" data-a="cancel-yes" data-v="${r.id}">Zrušit</button>`
           : `${r.admin_url ? `<a class="icon sm" href="${esc(r.admin_url)}" target="_blank" rel="noreferrer" title="Správa u FNUSA"><ha-icon icon="mdi:open-in-new"></ha-icon></a>` : ""}
              <button class="icon sm" data-a="cancel-ask" data-v="${r.id}" title="Zrušit" ${r.has_key ? "" : "disabled"}><ha-icon icon="mdi:close"></ha-icon></button>`}
       </div>`;

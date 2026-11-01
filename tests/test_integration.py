@@ -253,3 +253,15 @@ async def test_owner_defaults_to_notification_phone_user(hass: HomeAssistant, se
     hass.config_entries.async_update_entry(manager.entry, options={**manager.entry.options, "allowed_users": []})
     assert manager.allowed_users() == {"phone-owner"}
     assert not manager.is_allowed(None)
+
+
+async def test_forget_and_no_resurrection_from_old_mail(hass: HomeAssistant, setup) -> None:
+    manager, fnusa, google, notify_calls = setup
+    res_id = manager.snapshot()["next"]["id"]
+    await hass.services.async_call(DOMAIN, "forget_reservation", {"reservation_id": res_id}, blocking=True, context=OWNER_CTX)
+    assert manager.snapshot()["next"] is None
+    google.delete_event.assert_awaited_with("existing-nov")
+    fnusa.request_admin_code.assert_not_awaited()
+    # Stejný potvrzovací e-mail znovu (např. nové načtení pošty) rezervaci nevzkřísí
+    await manager._apply_mail(parse_mail(*MAILS["m3"][0]))
+    assert manager.snapshot()["next"] is None

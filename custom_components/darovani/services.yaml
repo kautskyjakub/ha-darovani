@@ -75,3 +75,10 @@ add_history:
       required: true
       selector:
         datetime:
+
+forget_reservation:
+  fields:
+    reservation_id:
+      required: true
+      selector:
+        text:

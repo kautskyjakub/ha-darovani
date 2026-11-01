@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Final
 
 DOMAIN: Final = "darovani"
-VERSION: Final = "1.0.1"
+VERSION: Final = "1.0.2"
 
 # --- Druhy odběru --------------------------------------------------------
 KIND_BLOOD: Final = "krev"
@@ -116,6 +116,7 @@ SERVICE_SUBMIT_CODE: Final = "submit_code"
 SERVICE_RESEND_CODE: Final = "resend_code"
 SERVICE_ABORT: Final = "abort"
 SERVICE_CANCEL: Final = "cancel_reservation"
+SERVICE_FORGET: Final = "forget_reservation"
 SERVICE_POSTPONE_PREVIEW: Final = "postpone_preview"
 SERVICE_POSTPONE_APPLY: Final = "postpone_apply"
 SERVICE_CLEAR_DEFERRAL: Final = "clear_deferral"

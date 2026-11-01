@@ -237,6 +237,15 @@
           "name": "Kdy"
         }
       }
+    },
+    "forget_reservation": {
+      "name": "Odebrat zrušenou rezervaci",
+      "description": "Rezervace už je u FNUSA zrušená – jen ji odebere z modulu a kalendáře.",
+      "fields": {
+        "reservation_id": {
+          "name": "ID rezervace"
+        }
+      }
     }
   }
 }

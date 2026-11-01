@@ -237,6 +237,15 @@
           "name": "When"
         }
       }
+    },
+    "forget_reservation": {
+      "name": "Forget reservation",
+      "description": "Already cancelled at FNUSA – remove locally.",
+      "fields": {
+        "reservation_id": {
+          "name": "Reservation ID"
+        }
+      }
     }
   }
 }
