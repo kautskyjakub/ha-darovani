@@ -82,3 +82,10 @@ forget_reservation:
       required: true
       selector:
         text:
+
+send_work_invite:
+  fields:
+    reservation_id:
+      required: true
+      selector:
+        text:

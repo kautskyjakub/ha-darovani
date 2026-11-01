@@ -28,6 +28,8 @@ from .const import (
     DOMAIN,
     GOOGLE_SCOPES,
     OPT_ALLOWED_USERS,
+    OPT_INVITE_CALENDAR,
+    OPT_INVITE_EMAIL,
     OPT_BLOOD_INTERVAL_MONTHS,
     OPT_BLOOD_TO_PLASMA_DAYS,
     OPT_CALENDAR_ID,
@@ -172,6 +174,10 @@ class DarovaniOptionsFlow(OptionsFlow):
                 vol.Required(OPT_QUIET_START, default=current[OPT_QUIET_START]): selector.TimeSelector(),
                 vol.Required(OPT_QUIET_END, default=current[OPT_QUIET_END]): selector.TimeSelector(),
                 vol.Required(OPT_DASHBOARD_PATH, default=current[OPT_DASHBOARD_PATH]): selector.TextSelector(),
+                vol.Optional(OPT_INVITE_EMAIL, default=current[OPT_INVITE_EMAIL]): selector.TextSelector(
+                    selector.TextSelectorConfig(type=selector.TextSelectorType.EMAIL)
+                ),
+                vol.Optional(OPT_INVITE_CALENDAR, default=current[OPT_INVITE_CALENDAR]): selector.TextSelector(),
             }
         )
         return self.async_show_form(step_id="preferences", data_schema=schema)

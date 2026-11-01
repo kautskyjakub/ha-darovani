@@ -69,7 +69,9 @@
           "quiet_start": "Quiet hours from",
           "quiet_end": "Quiet hours until",
           "dashboard_path": "Dashboard path for notifications",
-          "allowed_users": "Who may use the module"
+          "allowed_users": "Who may use the module",
+          "work_invite_email": "Work e-mail for KREV / PLASMA invites (optional)",
+          "work_invite_calendar_id": "Hidden Google calendar for invites (ID)"
         }
       },
       "rules": {
@@ -241,6 +243,15 @@
     "forget_reservation": {
       "name": "Forget reservation",
       "description": "Already cancelled at FNUSA – remove locally.",
+      "fields": {
+        "reservation_id": {
+          "name": "Reservation ID"
+        }
+      }
+    },
+    "send_work_invite": {
+      "name": "Send work invite",
+      "description": "Send the all-day work invite.",
       "fields": {
         "reservation_id": {
           "name": "Reservation ID"

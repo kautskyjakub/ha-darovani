@@ -58,6 +58,24 @@ class GoogleClient:
     async def patch_event(self, event_id: str, body: dict[str, Any]) -> None:
         await self._call("PATCH", self._cal_url(f"/{event_id}"), json=body)
 
+    async def create_invite(self, calendar_id: str, body: dict[str, Any]) -> str:
+        """Událost v jiném kalendáři s odesláním pozvánky hostům."""
+        data = await self._call(
+            "POST", f"{CAL_API}/calendars/{calendar_id}/events", json=body, params={"sendUpdates": "all"}
+        )
+        return data["id"]
+
+    async def delete_invite(self, calendar_id: str, event_id: str) -> None:
+        """Smaže pozvánku a hostům odejde zrušení."""
+        try:
+            await self._call(
+                "DELETE", f"{CAL_API}/calendars/{calendar_id}/events/{event_id}", params={"sendUpdates": "all"}
+            )
+        except GoogleError as err:
+            if "404" in str(err):
+                return
+            raise
+
     async def delete_event(self, event_id: str) -> None:
         try:
             await self._call("DELETE", self._cal_url(f"/{event_id}"))

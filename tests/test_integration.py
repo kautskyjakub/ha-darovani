@@ -86,6 +86,8 @@ async def setup(hass: HomeAssistant, freezer: FrozenDateTimeFactory, hass_admin_
     google.create_event = AsyncMock(return_value="new-event")
     google.patch_event = AsyncMock()
     google.delete_event = AsyncMock()
+    google.create_invite = AsyncMock(return_value="invite-1")
+    google.delete_invite = AsyncMock()
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -101,7 +103,8 @@ async def setup(hass: HomeAssistant, freezer: FrozenDateTimeFactory, hass_admin_
             "weight": 80,
             "blood_type": "A+",
         },
-        options={"notify_service": "notify.mobile_app_test_phone", "allowed_users": [OWNER, hass_admin_user.id]},
+        options={"notify_service": "notify.mobile_app_test_phone", "allowed_users": [OWNER, hass_admin_user.id],
+                 "work_invite_email": "work@example.com", "work_invite_calendar_id": "hidden-cal"},
     )
     entry.add_to_hass(hass)
     with (
@@ -270,3 +273,26 @@ async def test_forget_and_no_resurrection_from_old_mail(hass: HomeAssistant, set
     # Stejný potvrzovací e-mail znovu (např. nové načtení pošty) rezervaci nevzkřísí
     await manager._apply_mail(parse_mail(*MAILS["m3"][0]))
     assert manager.snapshot()["next"] is None
+
+
+async def test_work_invite_only_for_new_bookings(hass: HomeAssistant, setup) -> None:
+    manager, fnusa, google, notify_calls = setup
+    # Starší rezervace krve 30. 11. (mail z léta) pozvánku nedostala
+    google.create_invite.assert_not_awaited()
+    # Nová rezervace přes modul -> celodenní PLASMA s pozvánkou
+    await hass.services.async_call(
+        DOMAIN, "select_slot", {"kind": "plazma", "start": "2026-12-31T07:30:00+01:00"}, blocking=True, context=OWNER_CTX
+    )
+    await hass.services.async_call(DOMAIN, "submit_code", {"code": "12345"}, blocking=True, context=OWNER_CTX)
+    cal, body = google.create_invite.await_args.args
+    assert cal == "hidden-cal"
+    assert body["summary"] == "PLASMA"
+    assert body["start"] == {"date": "2026-12-31"} and body["end"] == {"date": "2027-01-01"}
+    assert body["attendees"] == [{"email": "work@example.com"}]
+    # Ruční odeslání pro starší rezervaci
+    old = next(r for r in manager.upcoming() if r["kind"] == "krev")
+    await hass.services.async_call(DOMAIN, "send_work_invite", {"reservation_id": old["id"]}, blocking=True, context=OWNER_CTX)
+    assert google.create_invite.await_args.args[1]["summary"] == "KREV"
+    # Zrušení smaže i pozvánku
+    await hass.services.async_call(DOMAIN, "forget_reservation", {"reservation_id": old["id"]}, blocking=True, context=OWNER_CTX)
+    google.delete_invite.assert_awaited_with("hidden-cal", "invite-1")

@@ -34,6 +34,7 @@ from .const import (
     SERVICE_ADD_HISTORY,
     SERVICE_CANCEL,
     SERVICE_FORGET,
+    SERVICE_SEND_INVITE,
     SERVICE_CLEAR_DEFERRAL,
     SERVICE_MARK_NOT_DONE,
     SERVICE_POSTPONE_APPLY,
@@ -167,6 +168,9 @@ def _register_services(hass: HomeAssistant) -> None:
     async def forget(call: ServiceCall) -> None:
         await wrap(_manager(hass).forget(call.data["reservation_id"]))
 
+    async def send_invite(call: ServiceCall) -> None:
+        await wrap(_manager(hass).send_invite(call.data["reservation_id"]))
+
     async def postpone_preview(call: ServiceCall) -> ServiceResponse:
         return _manager(hass).postpone_preview(int(call.data["days"]))
 
@@ -193,6 +197,9 @@ def _register_services(hass: HomeAssistant) -> None:
     )
     hass.services.async_register(
         DOMAIN, SERVICE_FORGET, _owner_only(hass, forget), vol.Schema({vol.Required("reservation_id"): cv.string})
+    )
+    hass.services.async_register(
+        DOMAIN, SERVICE_SEND_INVITE, _owner_only(hass, send_invite), vol.Schema({vol.Required("reservation_id"): cv.string})
     )
     days = vol.All(vol.Coerce(int), vol.Range(min=1, max=120))
     hass.services.async_register(DOMAIN, SERVICE_POSTPONE_PREVIEW, _owner_only(hass, postpone_preview),

@@ -10,6 +10,7 @@ Integrace pro Home Assistant, která hlídá volné termíny na transfuzním odd
 - **Rušení bez otevírání mailu.** Odkaz pro správu se vyčte z potvrzovacího e-mailu a uloží se k rezervaci i do popisu události v kalendáři. Rušení se pak potvrzuje kódem z SMS.
 - **Odklad (např. opar).** Zvolíš počet dní a karta ukáže, co se posune a na jaký termín. Po potvrzení modul zruší termíny v době odkladu a zamluví náhrady.
 - **Google kalendář.** Události mají stejný formát jako dosud: *🩸 Darování krve / plazmy*, místo FN u sv. Anny, připomínka den předem a v čase odběru. Integrace je drží v souladu s rezervacemi, včetně storen provedených mimo Home Assistant.
+- **Pozvánka do pracovního kalendáře (volitelné).** U každé nové rezervace pošle celodenní událost *KREV* nebo *PLASMA* na zadaný pracovní e-mail. Událost leží ve skrytém Google kalendáři, takže v osobním kalendáři ji nevidíš. Při zrušení odejde zrušení pozvánky.
 - **Karta na dashboard** `custom:darovani-card` s dalším odběrem, výběrem termínu, zadáním kódu, plánem, odkladem a historií.
 - **Entity:** kalendář `calendar.darovani` (včetně výhledu plánu) a senzory *Další odběr*, *Stav*, *Další krok*, *Poslední krev*, *Poslední plazma* a *Počet odběrů*.
 

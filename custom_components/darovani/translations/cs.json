@@ -69,7 +69,9 @@
           "quiet_start": "Nerušit od",
           "quiet_end": "Nerušit do",
           "dashboard_path": "Odkaz z notifikací (cesta dashboardu)",
-          "allowed_users": "Kdo smí modul používat (ostatní ho neuvidí ani nespustí)"
+          "allowed_users": "Kdo smí modul používat (ostatní ho neuvidí ani nespustí)",
+          "work_invite_email": "Pracovní e-mail pro pozvánky KREV / PLASMA (nepovinné)",
+          "work_invite_calendar_id": "Skrytý Google kalendář pro pozvánky (ID)"
         }
       },
       "rules": {
@@ -241,6 +243,15 @@
     "forget_reservation": {
       "name": "Odebrat zrušenou rezervaci",
       "description": "Rezervace už je u FNUSA zrušená – jen ji odebere z modulu a kalendáře.",
+      "fields": {
+        "reservation_id": {
+          "name": "ID rezervace"
+        }
+      }
+    },
+    "send_work_invite": {
+      "name": "Poslat pozvánku do práce",
+      "description": "Pošle celodenní pozvánku KREV / PLASMA na pracovní e-mail.",
       "fields": {
         "reservation_id": {
           "name": "ID rezervace"

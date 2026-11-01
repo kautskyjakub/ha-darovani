@@ -59,6 +59,7 @@ from .const import (
     KIND_DURATION_MIN,
     KIND_EVENT_TITLE,
     KIND_LABEL,
+    KIND_WORK_TITLE,
     KINDS,
     MAIL_POLL_FAST_MINUTES,
     MAIL_POLL_MINUTES,
@@ -68,6 +69,8 @@ from .const import (
     OPT_BLOOD_TO_PLASMA_DAYS,
     OPT_DASHBOARD_PATH,
     OPT_HORIZON_DAYS,
+    OPT_INVITE_CALENDAR,
+    OPT_INVITE_EMAIL,
     OPT_NOTIFY_SERVICE,
     OPT_PLASMA_INTERVAL_DAYS,
     OPT_PLASMA_TO_BLOOD_DAYS,
@@ -229,6 +232,10 @@ class DonationManager:
         self.data.setdefault("snoozed_until", None)
         self.data.setdefault("flow", None)
         self.data.setdefault("cancelled_keys", [])
+        self.data.setdefault("invite_since", None)
+        if self._invite_target() and not self.data["invite_since"]:
+            # Pozvánky jen pro rezervace vzniklé od zapnutí funkce
+            self.data["invite_since"] = dt_util.now().isoformat()
         # Rozpracovaný tok po restartu nemá platný kód – zahodit čekání
         if self.data["flow"]:
             self.data["flow"]["awaiting"] = None
@@ -418,14 +425,14 @@ class DonationManager:
             if ev:
                 new_events.append((received or dt_util.now(), ev))
         # Chronologicky – rezervace dřív než její storno
-        for _received, ev in sorted(new_events, key=lambda x: x[0]):
-            await self._apply_mail(ev)
+        for received, ev in sorted(new_events, key=lambda x: x[0]):
+            await self._apply_mail(ev, received)
         self.data["processed_mail"] = sorted(processed)[-500:]
         self.mail_updated = dt_util.now()
         if self._fast_mail_until and not any(not r.get("key") for r in self.upcoming()):
             self._fast_mail_until = None
 
-    async def _apply_mail(self, ev: Any) -> None:
+    async def _apply_mail(self, ev: Any, received: datetime | None = None) -> None:
         start = ev.start
         if ev.type == MAIL_NEW:
             if ev.key and ev.key in self.data["cancelled_keys"]:
@@ -435,15 +442,19 @@ class DonationManager:
             res = self._find(ev.kind, start, (RES_RESERVED, RES_DONE))
             if res is None:
                 res = self._add_reservation(ev.kind, start, "email")
+                if received:
+                    res["booked_at"] = received.isoformat()
             res["key"] = res.get("key") or ev.key
             res["admin_url"] = res.get("admin_url") or ev.admin_url
             if res["status"] == RES_RESERVED and self._end(res) > dt_util.now():
                 await self._sync_event(res)
+                await self._sync_invite(res)
         elif ev.type == MAIL_CANCEL:
             res = self._find(ev.kind, start, (RES_RESERVED,))
             if res:
                 res["status"] = RES_CANCELLED
                 await self._remove_event(res)
+                await self._remove_invite(res)
 
     def _event_body(self, res: dict[str, Any]) -> dict[str, Any]:
         start = dt_util.as_local(self._start(res))
@@ -486,6 +497,59 @@ class DonationManager:
                 res["gcal_id"] = await self.google.create_event(body)
         except GoogleError as err:
             _LOGGER.warning("Google kalendář: %s", err)
+
+    # --- Pozvánka do pracovního kalendáře --------------------------------
+
+    def _invite_target(self) -> tuple[str, str] | None:
+        email = (self.opts.get(OPT_INVITE_EMAIL) or "").strip()
+        calendar_id = (self.opts.get(OPT_INVITE_CALENDAR) or "").strip()
+        return (email, calendar_id) if email and calendar_id else None
+
+    async def _sync_invite(self, res: dict[str, Any], force: bool = False) -> None:
+        """Celodenní událost KREV / PLASMA s pozvánkou na pracovní e-mail."""
+        target = self._invite_target()
+        if not self.google or not target or res.get("invite_id") or res["status"] != RES_RESERVED:
+            return
+        since = self.data.get("invite_since")
+        booked_at = res.get("booked_at") or res.get("created", "")
+        if not force and (not since or dt_util.parse_datetime(booked_at) < dt_util.parse_datetime(since)):
+            return
+        email, calendar_id = target
+        day = dt_util.as_local(self._start(res)).date()
+        body = {
+            "summary": KIND_WORK_TITLE[res["kind"]],
+            "start": {"date": day.isoformat()},
+            "end": {"date": (day + timedelta(days=1)).isoformat()},
+            "transparency": "transparent",
+            "attendees": [{"email": email}],
+            "reminders": {"useDefault": False, "overrides": []},
+            "extendedProperties": {"private": {"darovani_invite": res["id"]}},
+        }
+        try:
+            res["invite_id"] = await self.google.create_invite(calendar_id, body)
+        except GoogleError as err:
+            _LOGGER.warning("Pozvánka do pracovního kalendáře: %s", err)
+
+    async def _remove_invite(self, res: dict[str, Any]) -> None:
+        target = self._invite_target()
+        if not self.google or not res.get("invite_id"):
+            return
+        calendar_id = target[1] if target else (self.opts.get(OPT_INVITE_CALENDAR) or "")
+        try:
+            await self.google.delete_invite(calendar_id, res["invite_id"])
+            res["invite_id"] = None
+        except GoogleError as err:
+            _LOGGER.warning("Zrušení pozvánky: %s", err)
+
+    async def send_invite(self, res_id: str) -> None:
+        res = self._res().get(res_id)
+        if not res or res["status"] != RES_RESERVED:
+            raise FnusaError("Rezervace nenalezena.")
+        if not self._invite_target():
+            raise FnusaError("Pozvánky nejsou nastavené – doplň e-mail a kalendář v Možnostech.")
+        await self._sync_invite(res, force=True)
+        await self._save()
+        self._changed()
 
     async def _remove_event(self, res: dict[str, Any]) -> None:
         if not self.google:
@@ -641,6 +705,7 @@ class DonationManager:
             return False
         res = self._add_reservation(kind, start, "module", fnusa_id=fnusa_id)
         await self._sync_event(res)
+        await self._sync_invite(res)
         self._fast_mail_until = dt_util.now() + timedelta(minutes=30)
         op["res_id"] = res["id"]
         # Plán se změnil – nabídka pro tento krok už neplatí
@@ -665,6 +730,7 @@ class DonationManager:
         res["status"] = RES_CANCELLED
         self._remember_cancelled(res)
         await self._remove_event(res)
+        await self._remove_invite(res)
         self.data["notified"] = {}
         return True
 
@@ -759,6 +825,7 @@ class DonationManager:
         res["status"] = RES_CANCELLED
         self._remember_cancelled(res)
         await self._remove_event(res)
+        await self._remove_invite(res)
         self.data["notified"] = {}
         await self._maybe_offer()
         await self._save()

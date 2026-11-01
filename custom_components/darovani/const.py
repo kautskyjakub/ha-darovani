@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Final
 
 DOMAIN: Final = "darovani"
-VERSION: Final = "1.0.3"
+VERSION: Final = "1.1.0"
 
 # --- Druhy odběru --------------------------------------------------------
 KIND_BLOOD: Final = "krev"
@@ -32,6 +32,7 @@ KIND_EVENT_TITLE: Final = {
     KIND_BLOOD: "🩸 Darování krve",
     KIND_PLASMA: "🩸 Darování plazmy",
 }
+KIND_WORK_TITLE: Final = {KIND_BLOOD: "KREV", KIND_PLASMA: "PLASMA"}
 # Délka odběru v minutách (stejně jako tvoje dosavadní události)
 KIND_DURATION_MIN: Final = {KIND_BLOOD: 60, KIND_PLASMA: 90}
 
@@ -71,9 +72,15 @@ OPT_DASHBOARD_PATH: Final = "dashboard_path"
 # Uživatelé HA, kteří smějí modul používat (id). Prázdné = vlastník
 # mobilní aplikace, na kterou chodí notifikace.
 OPT_ALLOWED_USERS: Final = "allowed_users"
+# Celodenní pozvánka do pracovního kalendáře (např. KPMG). Událost se
+# zakládá ve skrytém Google kalendáři a pozvánka odchází na e-mail.
+OPT_INVITE_EMAIL: Final = "work_invite_email"
+OPT_INVITE_CALENDAR: Final = "work_invite_calendar_id"
 
 DEFAULT_OPTIONS: Final = {
     OPT_ALLOWED_USERS: [],
+    OPT_INVITE_EMAIL: "",
+    OPT_INVITE_CALENDAR: "",
     OPT_NOTIFY_SERVICE: "",
     OPT_CALENDAR_ID: "primary",
     OPT_PREFERRED_LATEST: "10:00",
@@ -117,6 +124,7 @@ SERVICE_RESEND_CODE: Final = "resend_code"
 SERVICE_ABORT: Final = "abort"
 SERVICE_CANCEL: Final = "cancel_reservation"
 SERVICE_FORGET: Final = "forget_reservation"
+SERVICE_SEND_INVITE: Final = "send_work_invite"
 SERVICE_POSTPONE_PREVIEW: Final = "postpone_preview"
 SERVICE_POSTPONE_APPLY: Final = "postpone_apply"
 SERVICE_CLEAR_DEFERRAL: Final = "clear_deferral"
