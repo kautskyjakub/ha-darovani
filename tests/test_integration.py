@@ -296,3 +296,38 @@ async def test_work_invite_only_for_new_bookings(hass: HomeAssistant, setup) -> 
     # Zrušení smaže i pozvánku
     await hass.services.async_call(DOMAIN, "forget_reservation", {"reservation_id": old["id"]}, blocking=True, context=OWNER_CTX)
     google.delete_invite.assert_awaited_with("hidden-cal", "invite-1")
+
+
+async def test_cancel_and_rebook_same_slot(hass: HomeAssistant, setup, freezer) -> None:
+    """Zrušení a nové zarezervování téhož termínu (FNUSA použije stejný klíč)."""
+    manager, fnusa, google, notify_calls = setup
+    slot = {"kind": "plazma", "start": "2027-01-05T09:45:00+01:00"}
+    plazma = "Plazmaferézy - Objednávky"
+
+    async def book() -> None:
+        await hass.services.async_call(DOMAIN, "select_slot", slot, blocking=True, context=OWNER_CTX)
+        if manager.flow and manager.flow.get("awaiting"):
+            await hass.services.async_call(DOMAIN, "submit_code", {"code": "1"}, blocking=True, context=OWNER_CTX)
+
+    global PLASMA_SLOTS
+    PLASMA_SLOTS.append(dt(2027, 1, 5, 9, 45))
+    try:
+        await book()
+        await manager._apply_mail(parse_mail(*mail(plazma, "5.1.2027 9:45", "KEYJAN")), datetime(2026, 11, 1, 10, 0, 30, tzinfo=TZ))
+        first = next(r for r in manager.upcoming() if r["kind"] == "plazma")
+        assert first["key"] == "KEYJAN"
+
+        freezer.move_to("2026-11-01T10:06:00+01:00")
+        await hass.services.async_call(DOMAIN, "cancel_reservation", {"reservation_id": first["id"]}, blocking=True, context=OWNER_CTX)
+        await hass.services.async_call(DOMAIN, "submit_code", {"code": "2"}, blocking=True, context=OWNER_CTX)
+        freezer.move_to("2026-11-01T10:07:00+01:00")
+        await book()
+
+        # Pošta dorazí až teď: storno (10:06:05) a nové potvrzení se stejným klíčem (10:07:05)
+        await manager._apply_mail(parse_mail(*mail(plazma, "5.1.2027 9:45", None, cancel=True)), datetime(2026, 11, 1, 10, 6, 5, tzinfo=TZ))
+        await manager._apply_mail(parse_mail(*mail(plazma, "5.1.2027 9:45", "KEYJAN")), datetime(2026, 11, 1, 10, 7, 5, tzinfo=TZ))
+        upcoming = [r for r in manager.upcoming() if r["kind"] == "plazma"]
+        assert len(upcoming) == 1
+        assert upcoming[0]["key"] == "KEYJAN"
+    finally:
+        PLASMA_SLOTS.remove(dt(2027, 1, 5, 9, 45))

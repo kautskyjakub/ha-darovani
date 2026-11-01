@@ -232,6 +232,7 @@ class DonationManager:
         self.data.setdefault("snoozed_until", None)
         self.data.setdefault("flow", None)
         self.data.setdefault("cancelled_keys", [])
+        self.data.setdefault("cancelled", {})
         self.data.setdefault("invite_since", None)
         if self._invite_target() and not self.data["invite_since"]:
             # Pozvánky jen pro rezervace vzniklé od zapnutí funkce
@@ -305,6 +306,10 @@ class DonationManager:
         if mail:
             await self._sync_mail(full=full_mail)
         self._mark_done()
+        # Rezervace bez události v kalendáři (např. po výpadku) doplnit
+        for res in self.upcoming():
+            if not res.get("gcal_id"):
+                await self._sync_event(res)
         await self._maybe_offer()
         await self._save()
         self._changed()
@@ -432,29 +437,50 @@ class DonationManager:
         if self._fast_mail_until and not any(not r.get("key") for r in self.upcoming()):
             self._fast_mail_until = None
 
+    def _cancelled_at(self, key: str | None) -> datetime | None:
+        """Kdy modul rezervaci s tímto klíčem zrušil (None = nezrušil)."""
+        if not key:
+            return None
+        when = self.data["cancelled"].get(key)
+        if when:
+            return dt_util.parse_datetime(when)
+        # Starší záznamy bez času: zrušeno "kdysi" -> platí pro všechny staré maily
+        return datetime.max.replace(tzinfo=dt_util.UTC) if key in self.data["cancelled_keys"] else None
+
     async def _apply_mail(self, ev: Any, received: datetime | None = None) -> None:
+        """Promítne potvrzení / storno z e-mailu.
+
+        Pořadí událostí rozhoduje: storno se týká jen rezervace, která v době
+        storna už existovala, a potvrzení se ignoruje jen tehdy, když ho
+        modul zrušil až po jeho doručení. Zrušení a okamžité nové zarezervování
+        téhož termínu (FNUSA použije stejný klíč) tak funguje správně.
+        """
         start = ev.start
+        when = received or dt_util.now()
         if ev.type == MAIL_NEW:
-            if ev.key and ev.key in self.data["cancelled_keys"]:
-                return  # zrušeno přes modul (FNUSA k tomu storno mail neposílá)
-            if self._find(ev.kind, start, (RES_CANCELLED,)) and not self._find(ev.kind, start, (RES_RESERVED, RES_DONE)):
-                return
+            cancelled_at = self._cancelled_at(ev.key)
+            if cancelled_at and when <= cancelled_at:
+                return  # potvrzení rezervace, kterou modul mezitím zrušil
             res = self._find(ev.kind, start, (RES_RESERVED, RES_DONE))
             if res is None:
                 res = self._add_reservation(ev.kind, start, "email")
-                if received:
-                    res["booked_at"] = received.isoformat()
-            res["key"] = res.get("key") or ev.key
-            res["admin_url"] = res.get("admin_url") or ev.admin_url
+                res["booked_at"] = when.isoformat()
+            res["key"] = ev.key or res.get("key")
+            res["admin_url"] = ev.admin_url or res.get("admin_url")
             if res["status"] == RES_RESERVED and self._end(res) > dt_util.now():
                 await self._sync_event(res)
                 await self._sync_invite(res)
         elif ev.type == MAIL_CANCEL:
-            res = self._find(ev.kind, start, (RES_RESERVED,))
-            if res:
+            for res in self._res().values():
+                if res["kind"] != ev.kind or res["status"] != RES_RESERVED or self._start(res) != start:
+                    continue
+                created = dt_util.parse_datetime(res.get("booked_at") or res["created"])
+                if created and created > when:
+                    continue  # rezervace vznikla až po tomto stornu
                 res["status"] = RES_CANCELLED
                 await self._remove_event(res)
                 await self._remove_invite(res)
+                break
 
     def _event_body(self, res: dict[str, Any]) -> dict[str, Any]:
         start = dt_util.as_local(self._start(res))
@@ -814,8 +840,12 @@ class DonationManager:
         self._changed()
 
     def _remember_cancelled(self, res: dict[str, Any]) -> None:
-        if res.get("key") and res["key"] not in self.data["cancelled_keys"]:
-            self.data["cancelled_keys"] = (self.data["cancelled_keys"] + [res["key"]])[-200:]
+        if res.get("key"):
+            self.data["cancelled"][res["key"]] = dt_util.now().isoformat()
+            if len(self.data["cancelled"]) > 200:
+                oldest = sorted(self.data["cancelled"], key=self.data["cancelled"].get)[:-200]
+                for k in oldest:
+                    self.data["cancelled"].pop(k, None)
 
     async def forget(self, res_id: str) -> None:
         """Rezervace už byla zrušená jinde – jen ji odebrat z modulu a kalendáře."""
