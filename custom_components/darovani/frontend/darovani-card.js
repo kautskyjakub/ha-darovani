@@ -259,7 +259,7 @@ class DarovaniCard extends HTMLElement {
       return `
         <section class="flow">
           <div class="flow-title">${esc(f.title)}</div>
-          <div class="muted">FN USA ti poslala SMS s kódem pro ${what}.</div>
+          <div class="muted">FNUSA ti poslala SMS s kódem pro ${what}.</div>
           <div class="code-row">
             <input id="code" inputmode="numeric" autocomplete="one-time-code" placeholder="Kód z SMS"
                    value="${esc(this.ui.code)}" ${this.ui.busy ? "disabled" : ""}>
@@ -324,7 +324,7 @@ class DarovaniCard extends HTMLElement {
                <span class="grow"></span>
                <button class="ghost" data-a="cancel-no">Ne</button>
                <button class="danger" data-a="cancel-yes" data-v="${n.id}">Zrušit rezervaci</button>`
-            : `${n.admin_url ? `<a class="ghost" href="${esc(n.admin_url)}" target="_blank" rel="noreferrer">Správa u FN USA</a>` : `<span class="muted small">Odkaz pro správu dorazí e-mailem…</span>`}
+            : `${n.admin_url ? `<a class="ghost" href="${esc(n.admin_url)}" target="_blank" rel="noreferrer">Správa u FNUSA</a>` : `<span class="muted small">Odkaz pro správu dorazí e-mailem…</span>`}
                <span class="grow"></span>
                <button class="ghost" data-a="cancel-ask" data-v="${n.id}" ${n.has_key ? "" : "disabled"}>Zrušit</button>`}
         </div>
@@ -340,7 +340,7 @@ class DarovaniCard extends HTMLElement {
         <span class="li-main"><b>${KIND[r.kind].label}</b> · ${day(r.start)} · ${time(r.start)}</span>
         ${confirming
           ? `<button class="ghost sm" data-a="cancel-no">Ne</button><button class="danger sm" data-a="cancel-yes" data-v="${r.id}">Zrušit</button>`
-          : `${r.admin_url ? `<a class="icon sm" href="${esc(r.admin_url)}" target="_blank" rel="noreferrer" title="Správa u FN USA"><ha-icon icon="mdi:open-in-new"></ha-icon></a>` : ""}
+          : `${r.admin_url ? `<a class="icon sm" href="${esc(r.admin_url)}" target="_blank" rel="noreferrer" title="Správa u FNUSA"><ha-icon icon="mdi:open-in-new"></ha-icon></a>` : ""}
              <button class="icon sm" data-a="cancel-ask" data-v="${r.id}" title="Zrušit" ${r.has_key ? "" : "disabled"}><ha-icon icon="mdi:close"></ha-icon></button>`}
       </div>`;
   }
@@ -439,7 +439,7 @@ class DarovaniCard extends HTMLElement {
           }).join("")}</div>`
         : `<div class="muted">Žádná rezervace se nemění. Další krok se naplánuje od ${day(p.blocked_until)}.</div>`;
       if (affected.length) {
-        body += `<div class="muted small">Zrušení i nové rezervace potvrdíš kódy z SMS (FN USA je posílá zvlášť pro každý krok).</div>`;
+        body += `<div class="muted small">Zrušení i nové rezervace potvrdíš kódy z SMS (FNUSA je posílá zvlášť pro každý krok).</div>`;
       }
     }
     return `

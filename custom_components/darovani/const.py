@@ -1,4 +1,4 @@
-"""Konstanty integrace Darování krve a plazmy (FN USA Brno)."""
+"""Konstanty integrace Darování krve a plazmy (FNUSA Brno)."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ KIND_BLOOD: Final = "krev"
 KIND_PLASMA: Final = "plazma"
 KINDS: Final = (KIND_BLOOD, KIND_PLASMA)
 
-# Kalendáře v rezervačním systému NIS FN USA (IdPrac / Kalnum)
+# Kalendáře v rezervačním systému NIS FNUSA (IdPrac / Kalnum)
 FNUSA_BASE_URL: Final = "https://rezervace.fnusa.cz"
 FNUSA_CALENDARS: Final = {
     KIND_BLOOD: (162, 3),   # "Dárci krve"

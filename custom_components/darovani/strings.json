@@ -9,14 +9,14 @@
       },
       "person": {
         "title": "Donor details",
-        "description": "Same details as in the FN USA form. Stored only in your Home Assistant.",
+        "description": "Same details as in the FNUSA form. Stored only in your Home Assistant.",
         "data": {
           "title_before": "Title before name",
           "first_name": "First name",
           "last_name": "Last name",
           "title_after": "Title after name",
           "birth_date": "Date of birth",
-          "email": "E-mail (FN USA confirmations)",
+          "email": "E-mail (FNUSA confirmations)",
           "phone": "Mobile phone (SMS codes)",
           "weight": "Weight",
           "blood_type": "Blood type",
@@ -91,7 +91,7 @@
           "last_name": "Last name",
           "title_after": "Title after name",
           "birth_date": "Date of birth",
-          "email": "E-mail (FN USA confirmations)",
+          "email": "E-mail (FNUSA confirmations)",
           "phone": "Mobile phone (SMS codes)",
           "weight": "Weight",
           "blood_type": "Blood type",
@@ -185,7 +185,7 @@
     },
     "cancel_reservation": {
       "name": "Cancel reservation",
-      "description": "Cancel at FN USA and delete event.",
+      "description": "Cancel at FNUSA and delete event.",
       "fields": {
         "reservation_id": {
           "name": "Reservation ID"

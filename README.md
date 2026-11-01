@@ -1,6 +1,6 @@
 # Darování krve a plazmy – FN u sv. Anny v Brně
 
-Integrace pro Home Assistant, která hlídá volné termíny na transfuzním oddělení **FN u sv. Anny (FN USA)**, plánuje další odběry podle tvých pravidel a rezervuje, ruší i přesouvá termíny. Všechno se potvrzuje kódem z SMS přímo v notifikaci na mobilu.
+Integrace pro Home Assistant, která hlídá volné termíny na transfuzním oddělení **FN u sv. Anny (FNUSA)**, plánuje další odběry podle tvých pravidel a rezervuje, ruší i přesouvá termíny. Všechno se potvrzuje kódem z SMS přímo v notifikaci na mobilu.
 
 ## Co umí
 
@@ -16,7 +16,7 @@ Integrace pro Home Assistant, která hlídá volné termíny na transfuzním odd
 ## Instalace
 
 1. HACS → ⋮ → **Vlastní repozitáře** → `https://github.com/kautskyjakub/ha-darovani`, typ *Integration*.
-2. Stáhni **Darování krve a plazmy (FN USA)** a restartuj Home Assistant.
+2. Stáhni **Darování krve a plazmy (FNUSA)** a restartuj Home Assistant.
 
 ## Propojení s Googlem (Kalendář + Gmail)
 
@@ -27,7 +27,7 @@ Integrace potřebuje vlastního OAuth klienta Google. Nastavuje se jednou:
 3. **OAuth consent screen**: typ *External*, vyplň název a svůj e-mail. Pak dej **Publish app**. Bez publikování Google přihlášení po 7 dnech zneplatní. Neověřená aplikace pro vlastní účet stačí, při přihlášení jen projdeš varováním.
 4. **Credentials → Create credentials → OAuth client ID**: typ *Web application*, autorizované přesměrování `https://my.home-assistant.io/redirect/oauth`.
 5. V HA: Nastavení → Zařízení a služby → ⋮ → **Přihlašovací údaje aplikace** → *Darování krve a plazmy* → vlož Client ID a Client secret.
-6. Přidej integraci **Darování krve a plazmy**, přihlas se Googlem a vyplň údaje dárce (stejné jako ve formuláři FN USA).
+6. Přidej integraci **Darování krve a plazmy**, přihlas se Googlem a vyplň údaje dárce (stejné jako ve formuláři FNUSA).
 7. V **Možnostech** integrace vyber, na který telefon chodí notifikace.
 
 Rozsahy oprávnění: `calendar.events` (zápis událostí odběru) a `gmail.readonly` (čte se jen pošta od `nis-noreply@fnusa.cz`).
@@ -44,9 +44,9 @@ type: custom:darovani-card
 
 Gmail a Google kalendář čte jen integrace pod tvým Google účtem. Obsah e-mailů se nikam v HA nezobrazuje a odkazy pro správu rezervace jsou jen na kartě a v tvém Google kalendáři, ne ve stavech entit. Entity mají jen data a stav, jsou skryté z automatických přehledů a stavy entit jsou v HA technicky vidět všem uživatelům.
 
-Údaje dárce zůstávají v Home Assistantu a odesílají se jen do rezervačního systému FN USA při rezervaci. Odkazy pro správu rezervace jsou osobní (kdo je má, může s rezervací manipulovat) a ukládají se jen do tvého HA a tvého kalendáře.
+Údaje dárce zůstávají v Home Assistantu a odesílají se jen do rezervačního systému FNUSA při rezervaci. Odkazy pro správu rezervace jsou osobní (kdo je má, může s rezervací manipulovat) a ukládají se jen do tvého HA a tvého kalendáře.
 
-## Jak funguje rezervační systém FN USA
+## Jak funguje rezervační systém FNUSA
 
 | Krok | Volání |
 |---|---|

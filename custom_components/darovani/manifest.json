@@ -1,6 +1,6 @@
 {
   "domain": "darovani",
-  "name": "Darování krve a plazmy (FN USA)",
+  "name": "Darování krve a plazmy (FNUSA)",
   "codeowners": ["@kautskyjakub"],
   "config_flow": true,
   "dependencies": ["application_credentials", "frontend", "http", "websocket_api"],

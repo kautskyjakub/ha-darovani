@@ -864,7 +864,7 @@ class DonationManager:
         if not flow:
             return
         purpose = "rezervaci" if flow.get("awaiting") == AWAIT_BOOKING_CODE else "správu rezervace"
-        message = f"{flow['title']}. FN USA ti poslala SMS s kódem pro {purpose} – zadej ho tady."
+        message = f"{flow['title']}. FNUSA ti poslala SMS s kódem pro {purpose} – zadej ho tady."
         if error:
             message = f"{error} {message}"
         await self._notify(

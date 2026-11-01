@@ -1,4 +1,4 @@
-"""Klient rezervačního systému NIS FN USA (rezervace.fnusa.cz).
+"""Klient rezervačního systému NIS FNUSA (rezervace.fnusa.cz).
 
 Postup rezervace (stejný jako webový formulář):
   1. GET  /api/AvailableTerms/NIS/{idPrac}/{kalnum}  -> volné termíny + pole formuláře
@@ -153,7 +153,7 @@ class FnusaClient:
                         payload = text
                 return resp.status, payload
         except (aiohttp.ClientError, TimeoutError) as err:
-            raise FnusaError(f"Rezervační systém FN USA neodpovídá ({err})") from err
+            raise FnusaError(f"Rezervační systém FNUSA neodpovídá ({err})") from err
 
     # --- Volné termíny ----------------------------------------------------
 

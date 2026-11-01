@@ -1,4 +1,4 @@
-"""Parser e-mailů z rezervačního systému FN USA (nis-noreply@fnusa.cz).
+"""Parser e-mailů z rezervačního systému FNUSA (nis-noreply@fnusa.cz).
 
 Potvrzení:  "Rezervace nového termínu v systému NIS: Dárci krve (TO)"
 Storno:     "Storno rezervace v systému NIS: Plazmaferézy - Objednávky (TO)"
@@ -68,7 +68,7 @@ def parse_mail(subject: str, body: str, message_id: str | None = None) -> MailEv
                 kind = k
                 break
     if kind is None:
-        return None  # jiný kalendář FN USA – netýká se darování
+        return None  # jiný kalendář FNUSA – netýká se darování
 
     key = admin_url = None
     if mail_type == MAIL_NEW:

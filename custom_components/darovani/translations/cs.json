@@ -9,14 +9,14 @@
       },
       "person": {
         "title": "Údaje dárce",
-        "description": "Stejné údaje jako ve formuláři FN USA. Zůstávají jen v tvém Home Assistantu a odesílají se pouze při rezervaci.",
+        "description": "Stejné údaje jako ve formuláři FNUSA. Zůstávají jen v tvém Home Assistantu a odesílají se pouze při rezervaci.",
         "data": {
           "title_before": "Titul před jménem",
           "first_name": "Jméno",
           "last_name": "Příjmení",
           "title_after": "Titul za jménem",
           "birth_date": "Datum narození",
-          "email": "E-mail (sem chodí potvrzení z FN USA)",
+          "email": "E-mail (sem chodí potvrzení z FNUSA)",
           "phone": "Mobil (sem chodí SMS kódy)",
           "weight": "Váha",
           "blood_type": "Krevní skupina",
@@ -91,7 +91,7 @@
           "last_name": "Příjmení",
           "title_after": "Titul za jménem",
           "birth_date": "Datum narození",
-          "email": "E-mail (sem chodí potvrzení z FN USA)",
+          "email": "E-mail (sem chodí potvrzení z FNUSA)",
           "phone": "Mobil (sem chodí SMS kódy)",
           "weight": "Váha",
           "blood_type": "Krevní skupina",
@@ -185,7 +185,7 @@
     },
     "cancel_reservation": {
       "name": "Zrušit rezervaci",
-      "description": "Zruší rezervaci u FN USA (kód z SMS) a smaže událost.",
+      "description": "Zruší rezervaci u FNUSA (kód z SMS) a smaže událost.",
       "fields": {
         "reservation_id": {
           "name": "ID rezervace"
