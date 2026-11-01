@@ -29,6 +29,10 @@ class GoogleError(Exception):
     """Chyba volání Google API."""
 
 
+class GoogleScopeMissing(GoogleError):
+    """Token nemá potřebné oprávnění (např. gmail.send) – nutné znovu propojit."""
+
+
 class GoogleClient:
     def __init__(self, session: config_entry_oauth2_flow.OAuth2Session, calendar_id: str) -> None:
         self._session = session
@@ -43,6 +47,8 @@ class GoogleClient:
             return None  # už smazáno
         if resp.status >= 400:
             text = await resp.text()
+            if resp.status == 403 and ("insufficient" in text.lower() or "scope" in text.lower()):
+                raise GoogleScopeMissing(f"Google API {method}: chybí oprávnění ({text[:200]})")
             raise GoogleError(f"Google API {method} {url.split('?')[0]} -> {resp.status}: {text[:300]}")
         return await resp.json()
 
@@ -115,6 +121,15 @@ class GoogleClient:
         return None
 
     # --- Gmail ------------------------------------------------------------
+
+    async def my_email(self) -> str:
+        if not getattr(self, "_email", None):
+            data = await self._call("GET", f"{GMAIL_API}/profile")
+            self._email = data["emailAddress"]
+        return self._email
+
+    async def send_raw(self, raw: str) -> None:
+        await self._call("POST", f"{GMAIL_API}/messages/send", json={"raw": raw})
 
     async def list_fnusa_messages(self, newer_than_days: int = 400) -> list[str]:
         ids: list[str] = []

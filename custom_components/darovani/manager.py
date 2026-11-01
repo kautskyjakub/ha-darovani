@@ -92,7 +92,8 @@ from .const import (
     STORAGE_VERSION,
     TERMS_POLL_MINUTES,
 )
-from .google import GoogleClient, GoogleError
+from . import ics
+from .google import GoogleClient, GoogleError, GoogleScopeMissing
 from .mail_parser import MAIL_CANCEL, MAIL_NEW, parse_mail
 
 _LOGGER = logging.getLogger(__name__)
@@ -234,7 +235,7 @@ class DonationManager:
         self.data.setdefault("cancelled_keys", [])
         self.data.setdefault("cancelled", {})
         self.data.setdefault("invite_since", None)
-        if self._invite_target() and not self.data["invite_since"]:
+        if self._invite_email() and not self.data["invite_since"]:
             # Pozvánky jen pro rezervace vzniklé od zapnutí funkce
             self.data["invite_since"] = dt_util.now().isoformat()
         # Rozpracovaný tok po restartu nemá platný kód – zahodit čekání
@@ -524,56 +525,100 @@ class DonationManager:
         except GoogleError as err:
             _LOGGER.warning("Google kalendář: %s", err)
 
-    # --- Pozvánka do pracovního kalendáře --------------------------------
+    # --- Pozvánka do pracovního kalendáře (iCalendar e-mail) --------------
 
-    def _invite_target(self) -> tuple[str, str] | None:
-        email = (self.opts.get(OPT_INVITE_EMAIL) or "").strip()
-        calendar_id = (self.opts.get(OPT_INVITE_CALENDAR) or "").strip()
-        return (email, calendar_id) if email and calendar_id else None
+    def _invite_email(self) -> str | None:
+        return (self.opts.get(OPT_INVITE_EMAIL) or "").strip() or None
+
+    def _invite_sender_name(self) -> str:
+        d = self.entry.data
+        return f"Darování – {d.get(CONF_FIRST_NAME, '')} {d.get(CONF_LAST_NAME, '')}".strip()
+
+    async def _send_ics(self, res: dict[str, Any], cancel: bool) -> None:
+        to_email = res.get("invite_to") or self._invite_email()
+        if not self.google or not to_email:
+            return
+        sender = await self.google.my_email()
+        day = dt_util.as_local(self._start(res)).date()
+        uid = res.get("invite_uid") or f"darovani-{res['id']}@ha-darovani"
+        seq = int(res.get("invite_seq", -1)) + 1
+        title = KIND_WORK_TITLE[res["kind"]]
+        cal = ics.build_ics(
+            uid=uid,
+            sequence=seq,
+            day=day,
+            summary=title,
+            organizer_email=sender,
+            organizer_name=self._invite_sender_name(),
+            attendee_email=to_email,
+            cancel=cancel,
+        )
+        when = f"{day.day}. {day.month}. {day.year}"
+        raw = ics.build_invite_mail(
+            ics=cal,
+            subject=f"{'Zrušeno: ' if cancel else ''}{title} – {when}",
+            text=f"{title} – {when} (celý den, mimo kancelář).",
+            from_email=sender,
+            from_name=self._invite_sender_name(),
+            to_email=to_email,
+            cancel=cancel,
+        )
+        await self.google.send_raw(raw)
+        res["invite_uid"] = uid
+        res["invite_seq"] = seq
+        res["invite_to"] = None if cancel else to_email
 
     async def _sync_invite(self, res: dict[str, Any], force: bool = False) -> None:
-        """Celodenní událost KREV / PLASMA s pozvánkou na pracovní e-mail."""
-        target = self._invite_target()
-        if not self.google or not target or res.get("invite_id") or res["status"] != RES_RESERVED:
+        """Celodenní KREV / PLASMA (Mimo kancelář, připomenutí den předem)."""
+        if not self._invite_email() or res.get("invite_to") or res["status"] != RES_RESERVED:
             return
         since = self.data.get("invite_since")
         booked_at = res.get("booked_at") or res.get("created", "")
         if not force and (not since or dt_util.parse_datetime(booked_at) < dt_util.parse_datetime(since)):
             return
-        email, calendar_id = target
-        day = dt_util.as_local(self._start(res)).date()
-        body = {
-            "summary": KIND_WORK_TITLE[res["kind"]],
-            "start": {"date": day.isoformat()},
-            "end": {"date": (day + timedelta(days=1)).isoformat()},
-            "transparency": "transparent",
-            "attendees": [{"email": email}],
-            "reminders": {"useDefault": False, "overrides": []},
-            "extendedProperties": {"private": {"darovani_invite": res["id"]}},
-        }
         try:
-            res["invite_id"] = await self.google.create_invite(calendar_id, body)
+            await self._send_ics(res, cancel=False)
+        except GoogleScopeMissing:
+            self._request_reauth()
         except GoogleError as err:
             _LOGGER.warning("Pozvánka do pracovního kalendáře: %s", err)
 
     async def _remove_invite(self, res: dict[str, Any]) -> None:
-        target = self._invite_target()
-        if not self.google or not res.get("invite_id"):
-            return
-        calendar_id = target[1] if target else (self.opts.get(OPT_INVITE_CALENDAR) or "")
-        try:
-            await self.google.delete_invite(calendar_id, res["invite_id"])
-            res["invite_id"] = None
-        except GoogleError as err:
-            _LOGGER.warning("Zrušení pozvánky: %s", err)
+        # Starší pozvánka založená přes Google kalendář
+        if res.get("invite_id") and self.google:
+            try:
+                await self.google.delete_invite(self.opts.get(OPT_INVITE_CALENDAR) or "", res["invite_id"])
+                res["invite_id"] = None
+            except GoogleError as err:
+                _LOGGER.warning("Zrušení pozvánky: %s", err)
+        if res.get("invite_to"):
+            try:
+                await self._send_ics(res, cancel=True)
+            except GoogleScopeMissing:
+                self._request_reauth()
+            except GoogleError as err:
+                _LOGGER.warning("Zrušení pozvánky: %s", err)
+
+    def _request_reauth(self) -> None:
+        _LOGGER.warning("Chybí oprávnění odesílat e-maily – je potřeba znovu propojit Google")
+        self.entry.async_start_reauth(self.hass)
 
     async def send_invite(self, res_id: str) -> None:
         res = self._res().get(res_id)
         if not res or res["status"] != RES_RESERVED:
             raise FnusaError("Rezervace nenalezena.")
-        if not self._invite_target():
-            raise FnusaError("Pozvánky nejsou nastavené – doplň e-mail a kalendář v Možnostech.")
-        await self._sync_invite(res, force=True)
+        if not self._invite_email():
+            raise FnusaError("Pozvánky nejsou nastavené – doplň pracovní e-mail v Možnostech.")
+        if res.get("invite_id"):
+            await self._remove_invite(res)  # nahradit starou pozvánku z Google kalendáře
+        res["invite_to"] = None
+        try:
+            await self._send_ics(res, cancel=False)
+        except GoogleScopeMissing as err:
+            self._request_reauth()
+            raise FnusaError("Chybí oprávnění odesílat e-maily – v HA potvrď nové propojení s Googlem.") from err
+        except GoogleError as err:
+            raise FnusaError(f"Pozvánku se nepodařilo odeslat: {err}") from err
         await self._save()
         self._changed()
 

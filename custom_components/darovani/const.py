@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Final
 
 DOMAIN: Final = "darovani"
-VERSION: Final = "1.1.1"
+VERSION: Final = "1.2.0"
 
 # --- Druhy odběru --------------------------------------------------------
 KIND_BLOOD: Final = "krev"
@@ -101,7 +101,9 @@ GOOGLE_TOKEN_URL: Final = "https://oauth2.googleapis.com/token"
 GOOGLE_SCOPES: Final = [
     "https://www.googleapis.com/auth/calendar.events",
     "https://www.googleapis.com/auth/gmail.readonly",
+    "https://www.googleapis.com/auth/gmail.send",
 ]
+SCOPE_GMAIL_SEND: Final = "https://www.googleapis.com/auth/gmail.send"
 
 # --- Intervaly dotazování -----------------------------------------------
 TERMS_POLL_MINUTES: Final = 20

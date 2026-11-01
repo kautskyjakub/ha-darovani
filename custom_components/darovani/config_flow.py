@@ -99,7 +99,7 @@ class DarovaniFlowHandler(config_entry_oauth2_flow.AbstractOAuth2FlowHandler, do
         return {"scope": " ".join(GOOGLE_SCOPES), "access_type": "offline", "prompt": "consent"}
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        if self._async_current_entries():
+        if self.source != "reauth" and self._async_current_entries():
             return self.async_abort(reason="single_instance_allowed")
         return await super().async_step_user(user_input)
 
@@ -177,7 +177,6 @@ class DarovaniOptionsFlow(OptionsFlow):
                 vol.Optional(OPT_INVITE_EMAIL, default=current[OPT_INVITE_EMAIL]): selector.TextSelector(
                     selector.TextSelectorConfig(type=selector.TextSelectorType.EMAIL)
                 ),
-                vol.Optional(OPT_INVITE_CALENDAR, default=current[OPT_INVITE_CALENDAR]): selector.TextSelector(),
             }
         )
         return self.async_show_form(step_id="preferences", data_schema=schema)
