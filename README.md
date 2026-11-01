@@ -10,7 +10,7 @@ Integrace pro Home Assistant, která hlídá volné termíny na transfuzním odd
 - **Rušení bez otevírání mailu.** Odkaz pro správu se vyčte z potvrzovacího e-mailu a uloží se k rezervaci i do popisu události v kalendáři. Rušení se pak potvrzuje kódem z SMS.
 - **Odklad (např. opar).** Zvolíš počet dní a karta ukáže, co se posune a na jaký termín. Po potvrzení modul zruší termíny v době odkladu a zamluví náhrady.
 - **Google kalendář.** Události mají stejný formát jako dosud: *🩸 Darování krve / plazmy*, místo FN u sv. Anny, připomínka den předem a v čase odběru. Integrace je drží v souladu s rezervacemi, včetně storen provedených mimo Home Assistant.
-- **Pozvánka do pracovního kalendáře (volitelné).** U každé nové rezervace pošle z tvého Gmailu celodenní pozvánku *KREV* nebo *PLASMA* na zadaný pracovní e-mail: v Outlooku jako *Mimo kancelář*, s připomenutím den předem a s odesílatelem „Darování – jméno“. Do osobního kalendáře se nic nezakládá a při zrušení odejde zrušení pozvánky.
+- **Pozvánka do pracovního kalendáře (volitelné).** U každé nové rezervace pošle z tvého Gmailu celodenní pozvánku *KREV* nebo *PLASMA* na zadaný pracovní e-mail: v Outlooku jako *Mimo kancelář*, s připomenutím den předem a s tvým jménem jako odesílatelem a štítkem *Personal*. Do osobního kalendáře se nic nezakládá a při zrušení odejde zrušení pozvánky.
 - **Karta na dashboard** `custom:darovani-card` s dalším odběrem, výběrem termínu, zadáním kódu, plánem, odkladem a historií.
 - **Entity:** kalendář `calendar.darovani` (včetně výhledu plánu) a senzory *Další odběr*, *Stav*, *Další krok*, *Poslední krev*, *Poslední plazma* a *Počet odběrů*.
 
@@ -31,7 +31,7 @@ Integrace potřebuje vlastního OAuth klienta Google. Nastavuje se jednou:
 6. Přidej integraci **Darování krve a plazmy**, přihlas se Googlem a vyplň údaje dárce (stejné jako ve formuláři FNUSA).
 7. V **Možnostech** integrace vyber, na který telefon chodí notifikace.
 
-Rozsahy oprávnění: `calendar.events` (zápis událostí odběru), `gmail.readonly` (čte se jen pošta od `nis-noreply@fnusa.cz`) a `gmail.send` (jen pozvánky do pracovního kalendáře).
+Rozsahy oprávnění: `calendar.events` (zápis událostí odběru), `gmail.modify` (čte se jen pošta od `nis-noreply@fnusa.cz` a zpracované e-maily se přesouvají do štítku, výchozí *Důležité/FNUSA*) a `gmail.send` (jen pozvánky do pracovního kalendáře).
 
 ## Karta
 

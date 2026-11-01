@@ -71,6 +71,7 @@ from .const import (
     OPT_HORIZON_DAYS,
     OPT_INVITE_CALENDAR,
     OPT_INVITE_EMAIL,
+    OPT_MAIL_LABEL,
     OPT_NOTIFY_SERVICE,
     OPT_PLASMA_INTERVAL_DAYS,
     OPT_PLASMA_TO_BLOOD_DAYS,
@@ -158,6 +159,7 @@ class DonationManager:
         self._unsubs: list[Callable[[], None]] = []
         self._fast_mail_until: datetime | None = None
         self._listeners: list[Callable[[], None]] = []
+        self._label_id: str | None = None
 
     # ------------------------------------------------------------------
     # Nastavení a životní cyklus
@@ -435,6 +437,7 @@ class DonationManager:
             await self._apply_mail(ev, received)
         self.data["processed_mail"] = sorted(processed)[-500:]
         self.mail_updated = dt_util.now()
+        await self._file_processed_mail(processed)
         if self._fast_mail_until and not any(not r.get("key") for r in self.upcoming()):
             self._fast_mail_until = None
 
@@ -447,6 +450,23 @@ class DonationManager:
             return dt_util.parse_datetime(when)
         # Starší záznamy bez času: zrušeno "kdysi" -> platí pro všechny staré maily
         return datetime.max.replace(tzinfo=dt_util.UTC) if key in self.data["cancelled_keys"] else None
+
+    async def _file_processed_mail(self, processed: set[str]) -> None:
+        """Zpracované e-maily z FNUSA přesune z Doručené pošty do štítku."""
+        label = (self.opts.get(OPT_MAIL_LABEL) or "").strip()
+        if not self.google or not label:
+            return
+        try:
+            ids = [mid for mid in await self.google.inbox_fnusa_ids() if mid in processed]
+            if not ids:
+                return
+            label_id = self._label_id or await self.google.label_id(label)
+            self._label_id = label_id
+            await self.google.move_to_label(ids, label_id)
+        except GoogleScopeMissing:
+            self._request_reauth()
+        except GoogleError as err:
+            _LOGGER.warning("Přesun e-mailů do štítku %s: %s", label, err)
 
     async def _apply_mail(self, ev: Any, received: datetime | None = None) -> None:
         """Promítne potvrzení / storno z e-mailu.
@@ -532,7 +552,7 @@ class DonationManager:
 
     def _invite_sender_name(self) -> str:
         d = self.entry.data
-        return f"Darování – {d.get(CONF_FIRST_NAME, '')} {d.get(CONF_LAST_NAME, '')}".strip()
+        return f"{d.get(CONF_FIRST_NAME, '')} {d.get(CONF_LAST_NAME, '')}".strip()
 
     async def _send_ics(self, res: dict[str, Any], cancel: bool) -> None:
         to_email = res.get("invite_to") or self._invite_email()
@@ -600,7 +620,7 @@ class DonationManager:
                 _LOGGER.warning("Zrušení pozvánky: %s", err)
 
     def _request_reauth(self) -> None:
-        _LOGGER.warning("Chybí oprávnění odesílat e-maily – je potřeba znovu propojit Google")
+        _LOGGER.warning("Chybí oprávnění ke Gmailu – je potřeba znovu propojit Google")
         self.entry.async_start_reauth(self.hass)
 
     async def send_invite(self, res_id: str) -> None:

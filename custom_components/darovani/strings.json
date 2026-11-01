@@ -71,7 +71,8 @@
           "dashboard_path": "Dashboard path for notifications",
           "allowed_users": "Who may use the module",
           "work_invite_email": "Work e-mail for KREV / PLASMA invites (optional)",
-          "work_invite_calendar_id": "Hidden Google calendar for invites (ID)"
+          "work_invite_calendar_id": "Hidden Google calendar for invites (ID)",
+          "mail_label": "Gmail label for processed FNUSA e-mails (empty = keep in inbox)"
         }
       },
       "rules": {

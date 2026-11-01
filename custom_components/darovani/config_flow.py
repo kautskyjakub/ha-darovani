@@ -30,6 +30,7 @@ from .const import (
     OPT_ALLOWED_USERS,
     OPT_INVITE_CALENDAR,
     OPT_INVITE_EMAIL,
+    OPT_MAIL_LABEL,
     OPT_BLOOD_INTERVAL_MONTHS,
     OPT_BLOOD_TO_PLASMA_DAYS,
     OPT_CALENDAR_ID,
@@ -177,6 +178,7 @@ class DarovaniOptionsFlow(OptionsFlow):
                 vol.Optional(OPT_INVITE_EMAIL, default=current[OPT_INVITE_EMAIL]): selector.TextSelector(
                     selector.TextSelectorConfig(type=selector.TextSelectorType.EMAIL)
                 ),
+                vol.Optional(OPT_MAIL_LABEL, default=current[OPT_MAIL_LABEL]): selector.TextSelector(),
             }
         )
         return self.async_show_form(step_id="preferences", data_schema=schema)

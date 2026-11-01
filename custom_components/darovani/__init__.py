@@ -30,6 +30,7 @@ from .const import (
     DOMAIN,
     KINDS,
     OPT_CALENDAR_ID,
+    SCOPE_GMAIL_MODIFY,
     SCOPE_GMAIL_SEND,
     SERVICE_ABORT,
     SERVICE_ADD_HISTORY,
@@ -107,7 +108,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: DarovaniConfigEntry) -> 
     manager = DonationManager(hass, entry, fnusa, google)
     await manager.async_setup()
     scope = str(entry.data.get("token", {}).get("scope", ""))
-    if scope and SCOPE_GMAIL_SEND not in scope:
+    if scope and (SCOPE_GMAIL_SEND not in scope or SCOPE_GMAIL_MODIFY not in scope):
         # Nové oprávnění (odesílání pozvánek) – požádat o nové propojení, ale nic neblokovat
         entry.async_start_reauth(hass)
     entry.runtime_data = manager

@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Final
 
 DOMAIN: Final = "darovani"
-VERSION: Final = "1.2.0"
+VERSION: Final = "1.3.0"
 
 # --- Druhy odběru --------------------------------------------------------
 KIND_BLOOD: Final = "krev"
@@ -76,11 +76,14 @@ OPT_ALLOWED_USERS: Final = "allowed_users"
 # zakládá ve skrytém Google kalendáři a pozvánka odchází na e-mail.
 OPT_INVITE_EMAIL: Final = "work_invite_email"
 OPT_INVITE_CALENDAR: Final = "work_invite_calendar_id"
+# Štítek (složka) v Gmailu, kam se přesunou zpracované e-maily z FNUSA
+OPT_MAIL_LABEL: Final = "mail_label"
 
 DEFAULT_OPTIONS: Final = {
     OPT_ALLOWED_USERS: [],
     OPT_INVITE_EMAIL: "",
     OPT_INVITE_CALENDAR: "",
+    OPT_MAIL_LABEL: "Důležité/FNUSA",
     OPT_NOTIFY_SERVICE: "",
     OPT_CALENDAR_ID: "primary",
     OPT_PREFERRED_LATEST: "10:00",
@@ -100,9 +103,10 @@ GOOGLE_AUTHORIZE_URL: Final = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL: Final = "https://oauth2.googleapis.com/token"
 GOOGLE_SCOPES: Final = [
     "https://www.googleapis.com/auth/calendar.events",
-    "https://www.googleapis.com/auth/gmail.readonly",
+    "https://www.googleapis.com/auth/gmail.modify",
     "https://www.googleapis.com/auth/gmail.send",
 ]
+SCOPE_GMAIL_MODIFY: Final = "https://www.googleapis.com/auth/gmail.modify"
 SCOPE_GMAIL_SEND: Final = "https://www.googleapis.com/auth/gmail.send"
 
 # --- Intervaly dotazování -----------------------------------------------

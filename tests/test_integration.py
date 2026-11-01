@@ -90,6 +90,9 @@ async def setup(hass: HomeAssistant, freezer: FrozenDateTimeFactory, hass_admin_
     google.delete_invite = AsyncMock()
     google.my_email = AsyncMock(return_value="me@gmail.com")
     google.send_raw = AsyncMock()
+    google.inbox_fnusa_ids = AsyncMock(return_value=["m3", "unknown"])
+    google.label_id = AsyncMock(return_value="Label_FNUSA")
+    google.move_to_label = AsyncMock()
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -299,12 +302,13 @@ async def test_work_invite_only_for_new_bookings(hass: HomeAssistant, setup) -> 
     await hass.services.async_call(DOMAIN, "submit_code", {"code": "12345"}, blocking=True, context=OWNER_CTX)
     msg = last_mail()
     assert msg["To"] == "work@example.com"
-    assert "Darování" in str(email.header.make_header(email.header.decode_header(msg["From"])))
+    assert "Jakub Test" in str(email.header.make_header(email.header.decode_header(msg["From"])))
     cal = ics_of(msg)
     assert "METHOD:REQUEST" in cal and "SUMMARY:PLASMA" in cal
     assert "DTSTART;VALUE=DATE:20261231" in cal and "DTEND;VALUE=DATE:20270101" in cal
     assert "X-MICROSOFT-CDO-BUSYSTATUS:OOF" in cal and "TRIGGER:-P1D" in cal
-    assert 'ORGANIZER;CN="Darování – Jakub Test":mailto:me@gmail.com' in cal
+    assert 'ORGANIZER;CN="Jakub Test":mailto:me@gmail.com' in cal
+    assert "CATEGORIES:Personal" in cal and "CLASS:PUBLIC" in cal
     # Ruční odeslání pro starší rezervaci a její zrušení (METHOD:CANCEL, vyšší SEQUENCE)
     old = next(r for r in manager.upcoming() if r["kind"] == "krev")
     await hass.services.async_call(DOMAIN, "send_work_invite", {"reservation_id": old["id"]}, blocking=True, context=OWNER_CTX)
@@ -347,3 +351,10 @@ async def test_cancel_and_rebook_same_slot(hass: HomeAssistant, setup, freezer) 
         assert upcoming[0]["key"] == "KEYJAN"
     finally:
         PLASMA_SLOTS.remove(dt(2027, 1, 5, 9, 45))
+
+
+async def test_processed_mail_moved_to_label(hass: HomeAssistant, setup) -> None:
+    manager, fnusa, google, notify_calls = setup
+    google.label_id.assert_awaited_with("Důležité/FNUSA")
+    # Přesouvá se jen zpracovaný e-mail, cizí zpráva zůstává v Doručené poště
+    google.move_to_label.assert_awaited_with(["m3"], "Label_FNUSA")

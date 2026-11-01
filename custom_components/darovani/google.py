@@ -128,6 +128,33 @@ class GoogleClient:
             self._email = data["emailAddress"]
         return self._email
 
+    async def label_id(self, name: str) -> str:
+        """ID štítku podle názvu; když neexistuje, založí ho."""
+        data = await self._call("GET", f"{GMAIL_API}/labels")
+        for label in data.get("labels", []):
+            if label.get("name") == name:
+                return label["id"]
+        created = await self._call(
+            "POST",
+            f"{GMAIL_API}/labels",
+            json={"name": name, "labelListVisibility": "labelShow", "messageListVisibility": "show"},
+        )
+        return created["id"]
+
+    async def inbox_fnusa_ids(self) -> list[str]:
+        data = await self._call(
+            "GET", f"{GMAIL_API}/messages", params={"q": f"from:{FNUSA_MAIL_SENDER} in:inbox", "maxResults": "100"}
+        )
+        return [m["id"] for m in data.get("messages", [])]
+
+    async def move_to_label(self, message_ids: list[str], label_id: str) -> None:
+        """Přesun do „složky“: přidat štítek a odebrat ze Doručené pošty."""
+        await self._call(
+            "POST",
+            f"{GMAIL_API}/messages/batchModify",
+            json={"ids": message_ids, "addLabelIds": [label_id], "removeLabelIds": ["INBOX"]},
+        )
+
     async def send_raw(self, raw: str) -> None:
         await self._call("POST", f"{GMAIL_API}/messages/send", json={"raw": raw})
 

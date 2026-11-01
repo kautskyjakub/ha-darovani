@@ -71,7 +71,8 @@
           "dashboard_path": "Odkaz z notifikací (cesta dashboardu)",
           "allowed_users": "Kdo smí modul používat (ostatní ho neuvidí ani nespustí)",
           "work_invite_email": "Pracovní e-mail pro pozvánky KREV / PLASMA (nepovinné)",
-          "work_invite_calendar_id": "Skrytý Google kalendář pro pozvánky (ID)"
+          "work_invite_calendar_id": "Skrytý Google kalendář pro pozvánky (ID)",
+          "mail_label": "Štítek v Gmailu pro zpracované e-maily FNUSA (prázdné = nepřesouvat)"
         }
       },
       "rules": {
