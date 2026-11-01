@@ -81,7 +81,7 @@ DEFAULT_OPTIONS: Final = {
     OPT_PLASMA_INTERVAL_DAYS: 21,
     OPT_PLASMA_TO_BLOOD_DAYS: 21,
     OPT_SLACK_DAYS: 7,
-    OPT_DASHBOARD_PATH: "/darovani/prehled",
+    OPT_DASHBOARD_PATH: "/dashboard-darovani/prehled",
 }
 
 # --- Google OAuth --------------------------------------------------------
