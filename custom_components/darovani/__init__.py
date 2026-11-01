@@ -14,7 +14,6 @@ from typing import Any
 import voluptuous as vol
 
 from homeassistant.components import websocket_api
-from homeassistant.components.frontend import add_extra_js_url
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
@@ -62,11 +61,38 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     await hass.http.async_register_static_paths(
         [StaticPathConfig(FRONTEND_URL, str(Path(__file__).parent / "frontend"), False)]
     )
-    add_extra_js_url(hass, f"{FRONTEND_URL}/darovani-card.js?v={VERSION}")
+    await _ensure_card_resource(hass)
     _register_services(hass)
     websocket_api.async_register_command(hass, ws_subscribe)
     websocket_api.async_register_command(hass, ws_postpone_preview)
     return True
+
+
+async def _ensure_card_resource(hass: HomeAssistant) -> None:
+    """Zaregistruje kartu jako zdroj dashboardu (s aktuální verzí v URL).
+
+    Zdroje si frontend načítá při každém otevření, takže karta funguje
+    i v prohlížeči nebo aplikaci s uloženou starší stránkou.
+    """
+    url = f"{FRONTEND_URL}/darovani-card.js?v={VERSION}"
+    try:
+        from homeassistant.components.lovelace.const import LOVELACE_DATA  # noqa: PLC0415
+
+        resources = hass.data[LOVELACE_DATA].resources
+        if not hasattr(resources, "async_create_item"):
+            _LOGGER.info("Dashboardy jsou v režimu YAML – přidej zdroj %s ručně", url)
+            return
+        if not resources.loaded:
+            await resources.async_load()
+            resources.loaded = True
+        for item in resources.async_items():
+            if str(item.get("url", "")).startswith(f"{FRONTEND_URL}/darovani-card.js"):
+                if item["url"] != url:
+                    await resources.async_update_item(item["id"], {"res_type": "module", "url": url})
+                return
+        await resources.async_create_item({"res_type": "module", "url": url})
+    except Exception as err:  # noqa: BLE001 – karta není kritická pro chod integrace
+        _LOGGER.warning("Nepodařilo se zaregistrovat kartu Darování jako zdroj dashboardu: %s", err)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: DarovaniConfigEntry) -> bool:

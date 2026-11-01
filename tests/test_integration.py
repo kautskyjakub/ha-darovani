@@ -194,6 +194,11 @@ async def test_postpone_preview_and_card(hass: HomeAssistant, setup, hass_ws_cli
     event = await ws.receive_json()
     assert event["event"]["offer"]["kind"] == "plazma"
 
+    from homeassistant.components.lovelace.const import LOVELACE_DATA
+
+    urls = [r["url"] for r in hass.data[LOVELACE_DATA].resources.async_items()]
+    assert any(u.startswith("/darovani_static/darovani-card.js?v=") for u in urls)
+
     client = await hass_client()
     resp = await client.get("/darovani_static/darovani-card.js")
     assert resp.status == 200

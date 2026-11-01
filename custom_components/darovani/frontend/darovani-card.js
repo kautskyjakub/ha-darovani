@@ -574,9 +574,11 @@ const STYLE = `
   .panel { }
 `;
 
-customElements.define("darovani-card", DarovaniCard);
+if (!customElements.get("darovani-card")) {
+  customElements.define("darovani-card", DarovaniCard);
+}
 window.customCards = window.customCards || [];
-window.customCards.push({
+if (!window.customCards.some((c) => c.type === "darovani-card")) window.customCards.push({
   type: "darovani-card",
   name: "Darování krve a plazmy",
   description: "Další odběr, výběr termínu se SMS kódem, plán a odklad.",

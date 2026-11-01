@@ -3,11 +3,11 @@
   "name": "Darování krve a plazmy (FNUSA)",
   "codeowners": ["@kautskyjakub"],
   "config_flow": true,
-  "dependencies": ["application_credentials", "frontend", "http", "websocket_api"],
+  "dependencies": ["application_credentials", "frontend", "http", "lovelace", "websocket_api"],
   "documentation": "https://github.com/kautskyjakub/ha-darovani",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/kautskyjakub/ha-darovani/issues",
   "requirements": [],
   "single_config_entry": true,
-  "version": "1.0.2"
+  "version": "1.0.3"
 }
