@@ -1,0 +1,77 @@
+refresh:
+
+select_slot:
+  fields:
+    kind:
+      required: true
+      selector:
+        select:
+          options: ["krev", "plazma"]
+    start:
+      required: true
+      selector:
+        datetime:
+
+submit_code:
+  fields:
+    code:
+      required: true
+      selector:
+        text:
+
+resend_code:
+
+abort:
+
+cancel_reservation:
+  fields:
+    reservation_id:
+      required: true
+      selector:
+        text:
+
+postpone_preview:
+  fields:
+    days:
+      required: true
+      default: 14
+      selector:
+        number:
+          min: 1
+          max: 120
+          unit_of_measurement: dní
+
+postpone_apply:
+  fields:
+    days:
+      required: true
+      default: 14
+      selector:
+        number:
+          min: 1
+          max: 120
+          unit_of_measurement: dní
+    reason:
+      selector:
+        text:
+
+clear_deferral:
+
+mark_not_done:
+  fields:
+    reservation_id:
+      required: true
+      selector:
+        text:
+
+add_history:
+  fields:
+    kind:
+      required: true
+      selector:
+        select:
+          options: ["krev", "plazma"]
+    start:
+      required: true
+      selector:
+        datetime:

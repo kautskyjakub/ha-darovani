@@ -1,0 +1,241 @@
+{
+  "application_credentials": {
+    "description": "V [Google Cloud Console]({console_url}) vytvoř OAuth klienta typu **Webová aplikace** s přesměrováním `{redirect_url}`, zapni Google Calendar API a Gmail API a na obrazovce souhlasu aplikaci **publikuj** (jinak Google po 7 dnech přihlášení zneplatní)."
+  },
+  "config": {
+    "step": {
+      "pick_implementation": {
+        "title": "Vyber přihlašovací údaje Google"
+      },
+      "person": {
+        "title": "Údaje dárce",
+        "description": "Stejné údaje jako ve formuláři FN USA. Zůstávají jen v tvém Home Assistantu a odesílají se pouze při rezervaci.",
+        "data": {
+          "title_before": "Titul před jménem",
+          "first_name": "Jméno",
+          "last_name": "Příjmení",
+          "title_after": "Titul za jménem",
+          "birth_date": "Datum narození",
+          "email": "E-mail (sem chodí potvrzení z FN USA)",
+          "phone": "Mobil (sem chodí SMS kódy)",
+          "weight": "Váha",
+          "blood_type": "Krevní skupina",
+          "insurance_no": "Číslo pojištěnce / rodné číslo (nepovinné)"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Znovu propojit Google",
+        "description": "Přihlášení ke Google vypršelo, propoj účet znovu."
+      }
+    },
+    "error": {
+      "invalid_phone": "Zadej číslo i s předvolbou, např. +420731123456."
+    },
+    "abort": {
+      "single_instance_allowed": "Integrace už je nastavená.",
+      "already_configured": "Integrace už je nastavená.",
+      "reauth_successful": "Google je znovu propojený.",
+      "missing_credentials": "Nejdřív přidej přihlašovací údaje Google (Nastavení → Zařízení a služby → ⋮ → Přihlašovací údaje aplikace).",
+      "missing_configuration": "Chybí přihlašovací údaje Google.",
+      "authorize_url_timeout": "Vypršel čas pro přihlášení ke Google.",
+      "no_url_available": "Není dostupná adresa pro přihlášení.",
+      "oauth_error": "Google vrátil chybu přihlášení.",
+      "oauth_failed": "Přihlášení ke Google se nepodařilo.",
+      "oauth_timeout": "Vypršel čas přihlášení ke Google.",
+      "oauth_unauthorized": "Google přihlášení zamítl.",
+      "user_rejected_authorize": "Přístup ke Google nebyl povolen."
+    },
+    "create_entry": {
+      "default": "Hotovo. Teď v Možnostech vyber, kam posílat notifikace."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Nastavení darování",
+        "menu_options": {
+          "preferences": "Notifikace a preference",
+          "rules": "Pravidla odstupů",
+          "person": "Údaje dárce"
+        }
+      },
+      "preferences": {
+        "title": "Notifikace a preference",
+        "data": {
+          "notify_service": "Kam posílat notifikace",
+          "calendar_id": "Google kalendář (ID, výchozí primary)",
+          "preferred_latest_start": "Preferovaný začátek nejpozději v",
+          "horizon_days": "Plánovat dopředu",
+          "quiet_start": "Nerušit od",
+          "quiet_end": "Nerušit do",
+          "dashboard_path": "Odkaz z notifikací (cesta dashboardu)"
+        }
+      },
+      "rules": {
+        "title": "Pravidla odstupů",
+        "description": "Minimální odstupy mezi odběry. Krev → krev je v měsících, ostatní ve dnech.",
+        "data": {
+          "blood_interval_months": "Krev → krev",
+          "blood_to_plasma_days": "Krev → plazma",
+          "plasma_interval_days": "Plazma → plazma",
+          "plasma_to_blood_days": "Plazma → krev",
+          "slack_days": "Tolerance pro ještě jednu plazmu před krví"
+        }
+      },
+      "person": {
+        "title": "Údaje dárce",
+        "data": {
+          "title_before": "Titul před jménem",
+          "first_name": "Jméno",
+          "last_name": "Příjmení",
+          "title_after": "Titul za jménem",
+          "birth_date": "Datum narození",
+          "email": "E-mail (sem chodí potvrzení z FN USA)",
+          "phone": "Mobil (sem chodí SMS kódy)",
+          "weight": "Váha",
+          "blood_type": "Krevní skupina",
+          "insurance_no": "Číslo pojištěnce / rodné číslo (nepovinné)"
+        }
+      }
+    }
+  },
+  "selector": {
+    "blood_type": {
+      "options": {
+        "0-": "0-",
+        "0+": "0+",
+        "A-": "A-",
+        "A+": "A+",
+        "B-": "B-",
+        "B+": "B+",
+        "AB-": "AB-",
+        "AB+": "AB+",
+        "uncertain": "Nevím jistě"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "next_donation": {
+        "name": "Další odběr"
+      },
+      "status": {
+        "name": "Stav",
+        "state": {
+          "ok": "V pořádku",
+          "to_book": "K rezervaci",
+          "waiting_code": "Čeká na kód z SMS",
+          "booking": "Probíhá",
+          "error": "Chyba"
+        }
+      },
+      "next_step": {
+        "name": "Další krok"
+      },
+      "last_blood": {
+        "name": "Poslední krev"
+      },
+      "last_plasma": {
+        "name": "Poslední plazma"
+      },
+      "donations": {
+        "name": "Počet odběrů"
+      }
+    },
+    "calendar": {
+      "calendar": {
+        "name": "Darování"
+      }
+    }
+  },
+  "services": {
+    "refresh": {
+      "name": "Obnovit",
+      "description": "Načte volné termíny a e-maily."
+    },
+    "select_slot": {
+      "name": "Rezervovat termín",
+      "description": "Spustí rezervaci; potvrzuje se kódem z SMS.",
+      "fields": {
+        "kind": {
+          "name": "Druh"
+        },
+        "start": {
+          "name": "Začátek"
+        }
+      }
+    },
+    "submit_code": {
+      "name": "Zadat kód z SMS",
+      "description": "Kód pro čekající rezervaci nebo zrušení.",
+      "fields": {
+        "code": {
+          "name": "Kód"
+        }
+      }
+    },
+    "resend_code": {
+      "name": "Poslat kód znovu",
+      "description": "Vyžádá novou SMS."
+    },
+    "abort": {
+      "name": "Přerušit",
+      "description": "Zruší rozpracovaný krok."
+    },
+    "cancel_reservation": {
+      "name": "Zrušit rezervaci",
+      "description": "Zruší rezervaci u FN USA (kód z SMS) a smaže událost.",
+      "fields": {
+        "reservation_id": {
+          "name": "ID rezervace"
+        }
+      }
+    },
+    "postpone_preview": {
+      "name": "Náhled odkladu",
+      "description": "Ukáže, co by se přesunulo.",
+      "fields": {
+        "days": {
+          "name": "Dní"
+        }
+      }
+    },
+    "postpone_apply": {
+      "name": "Odložit darování",
+      "description": "Odloží další odběry a přesune rezervace.",
+      "fields": {
+        "days": {
+          "name": "Dní"
+        },
+        "reason": {
+          "name": "Důvod"
+        }
+      }
+    },
+    "clear_deferral": {
+      "name": "Zrušit odklad",
+      "description": "Smaže omezení z odkladu."
+    },
+    "mark_not_done": {
+      "name": "Odběr neproběhl",
+      "description": "Proběhlý odběr se nebude počítat do plánu.",
+      "fields": {
+        "reservation_id": {
+          "name": "ID rezervace"
+        }
+      }
+    },
+    "add_history": {
+      "name": "Doplnit odběr do historie",
+      "description": "Ručně doplní proběhlý odběr.",
+      "fields": {
+        "kind": {
+          "name": "Druh"
+        },
+        "start": {
+          "name": "Kdy"
+        }
+      }
+    }
+  }
+}

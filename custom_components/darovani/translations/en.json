@@ -1,0 +1,241 @@
+{
+  "application_credentials": {
+    "description": "In [Google Cloud Console]({console_url}) create a **Web application** OAuth client with redirect `{redirect_url}`, enable the Calendar and Gmail APIs and **publish** the consent screen."
+  },
+  "config": {
+    "step": {
+      "pick_implementation": {
+        "title": "Pick Google credentials"
+      },
+      "person": {
+        "title": "Donor details",
+        "description": "Same details as in the FN USA form. Stored only in your Home Assistant.",
+        "data": {
+          "title_before": "Title before name",
+          "first_name": "First name",
+          "last_name": "Last name",
+          "title_after": "Title after name",
+          "birth_date": "Date of birth",
+          "email": "E-mail (FN USA confirmations)",
+          "phone": "Mobile phone (SMS codes)",
+          "weight": "Weight",
+          "blood_type": "Blood type",
+          "insurance_no": "Insurance or birth number (optional)"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-link Google",
+        "description": "Google sign-in expired, link again."
+      }
+    },
+    "error": {
+      "invalid_phone": "Enter the number with country code."
+    },
+    "abort": {
+      "single_instance_allowed": "Already configured.",
+      "already_configured": "Already configured.",
+      "reauth_successful": "Google re-linked.",
+      "missing_credentials": "Add Google application credentials first.",
+      "missing_configuration": "Missing Google credentials.",
+      "authorize_url_timeout": "Authorization timed out.",
+      "no_url_available": "No URL available.",
+      "oauth_error": "Google returned an OAuth error.",
+      "oauth_failed": "Google sign-in failed.",
+      "oauth_timeout": "Google sign-in timed out.",
+      "oauth_unauthorized": "Google denied the sign-in.",
+      "user_rejected_authorize": "Access was not granted."
+    },
+    "create_entry": {
+      "default": "Done."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Donation settings",
+        "menu_options": {
+          "preferences": "Notifications and preferences",
+          "rules": "Interval rules",
+          "person": "Donor details"
+        }
+      },
+      "preferences": {
+        "title": "Notifications and preferences",
+        "data": {
+          "notify_service": "Notification target",
+          "calendar_id": "Google calendar ID",
+          "preferred_latest_start": "Preferred latest start",
+          "horizon_days": "Planning horizon",
+          "quiet_start": "Quiet hours from",
+          "quiet_end": "Quiet hours until",
+          "dashboard_path": "Dashboard path for notifications"
+        }
+      },
+      "rules": {
+        "title": "Interval rules",
+        "description": "Minimum intervals.",
+        "data": {
+          "blood_interval_months": "Blood → blood",
+          "blood_to_plasma_days": "Blood → plasma",
+          "plasma_interval_days": "Plasma → plasma",
+          "plasma_to_blood_days": "Plasma → blood",
+          "slack_days": "Slack for one more plasma before blood"
+        }
+      },
+      "person": {
+        "title": "Donor details",
+        "data": {
+          "title_before": "Title before name",
+          "first_name": "First name",
+          "last_name": "Last name",
+          "title_after": "Title after name",
+          "birth_date": "Date of birth",
+          "email": "E-mail (FN USA confirmations)",
+          "phone": "Mobile phone (SMS codes)",
+          "weight": "Weight",
+          "blood_type": "Blood type",
+          "insurance_no": "Insurance or birth number (optional)"
+        }
+      }
+    }
+  },
+  "selector": {
+    "blood_type": {
+      "options": {
+        "0-": "0-",
+        "0+": "0+",
+        "A-": "A-",
+        "A+": "A+",
+        "B-": "B-",
+        "B+": "B+",
+        "AB-": "AB-",
+        "AB+": "AB+",
+        "uncertain": "Not sure"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "next_donation": {
+        "name": "Next donation"
+      },
+      "status": {
+        "name": "Status",
+        "state": {
+          "ok": "OK",
+          "to_book": "To book",
+          "waiting_code": "Waiting for SMS code",
+          "booking": "In progress",
+          "error": "Error"
+        }
+      },
+      "next_step": {
+        "name": "Next step"
+      },
+      "last_blood": {
+        "name": "Last blood donation"
+      },
+      "last_plasma": {
+        "name": "Last plasma donation"
+      },
+      "donations": {
+        "name": "Donations"
+      }
+    },
+    "calendar": {
+      "calendar": {
+        "name": "Donations"
+      }
+    }
+  },
+  "services": {
+    "refresh": {
+      "name": "Refresh",
+      "description": "Reload terms and mail."
+    },
+    "select_slot": {
+      "name": "Book slot",
+      "description": "Starts booking; confirmed by SMS code.",
+      "fields": {
+        "kind": {
+          "name": "Kind"
+        },
+        "start": {
+          "name": "Start"
+        }
+      }
+    },
+    "submit_code": {
+      "name": "Submit SMS code",
+      "description": "Code for the pending step.",
+      "fields": {
+        "code": {
+          "name": "Code"
+        }
+      }
+    },
+    "resend_code": {
+      "name": "Resend code",
+      "description": "Request a new SMS."
+    },
+    "abort": {
+      "name": "Abort",
+      "description": "Abort the pending step."
+    },
+    "cancel_reservation": {
+      "name": "Cancel reservation",
+      "description": "Cancel at FN USA and delete event.",
+      "fields": {
+        "reservation_id": {
+          "name": "Reservation ID"
+        }
+      }
+    },
+    "postpone_preview": {
+      "name": "Postpone preview",
+      "description": "Show what would move.",
+      "fields": {
+        "days": {
+          "name": "Days"
+        }
+      }
+    },
+    "postpone_apply": {
+      "name": "Postpone",
+      "description": "Postpone and move reservations.",
+      "fields": {
+        "days": {
+          "name": "Days"
+        },
+        "reason": {
+          "name": "Reason"
+        }
+      }
+    },
+    "clear_deferral": {
+      "name": "Clear deferral",
+      "description": "Remove the deferral."
+    },
+    "mark_not_done": {
+      "name": "Mark not done",
+      "description": "Exclude from plan.",
+      "fields": {
+        "reservation_id": {
+          "name": "Reservation ID"
+        }
+      }
+    },
+    "add_history": {
+      "name": "Add history",
+      "description": "Add a past donation.",
+      "fields": {
+        "kind": {
+          "name": "Kind"
+        },
+        "start": {
+          "name": "When"
+        }
+      }
+    }
+  }
+}
