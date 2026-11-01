@@ -32,9 +32,9 @@ class DonationCalendar(DarovaniEntity, CalendarEntity):
             if res["status"] not in (RES_RESERVED, RES_DONE):
                 continue
             view = m._res_view(res)  # noqa: SLF001
+            # Odkaz pro správu rezervace se sem záměrně nedává – stavy entit
+            # vidí všichni uživatelé HA; odkaz je jen na kartě a v Google kalendáři.
             desc = "Proběhlo" if res["status"] == RES_DONE else "Rezervováno"
-            if view["admin_url"]:
-                desc += f"\nSpráva rezervace: {view['admin_url']}"
             events.append(
                 CalendarEvent(
                     start=dt_util.parse_datetime(view["start"]),

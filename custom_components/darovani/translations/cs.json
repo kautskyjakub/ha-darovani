@@ -68,7 +68,8 @@
           "horizon_days": "Plánovat dopředu",
           "quiet_start": "Nerušit od",
           "quiet_end": "Nerušit do",
-          "dashboard_path": "Odkaz z notifikací (cesta dashboardu)"
+          "dashboard_path": "Odkaz z notifikací (cesta dashboardu)",
+          "allowed_users": "Kdo smí modul používat (ostatní ho neuvidí ani nespustí)"
         }
       },
       "rules": {

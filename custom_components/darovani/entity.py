@@ -13,6 +13,8 @@ from .manager import DonationManager
 class DarovaniEntity(Entity):
     _attr_has_entity_name = True
     _attr_should_poll = False
+    # Skryté v automaticky generovaných přehledech – modul je jen pro vlastníka
+    _attr_entity_registry_visible_default = False
 
     def __init__(self, manager: DonationManager, key: str) -> None:
         self.manager = manager

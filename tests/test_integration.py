@@ -10,7 +10,8 @@ import pytest
 from freezegun.api import FrozenDateTimeFactory
 from pytest_homeassistant_custom_component.common import MockConfigEntry, async_mock_service
 
-from homeassistant.core import HomeAssistant
+from homeassistant.core import Context, HomeAssistant
+from homeassistant.exceptions import Unauthorized
 from homeassistant.setup import async_setup_component
 
 from custom_components.darovani.api import AdminSession, Terms
@@ -53,8 +54,12 @@ FIELDS = [
 ]
 
 
+OWNER = "owner-user-id"
+OWNER_CTX = Context(user_id=OWNER)
+
+
 @pytest.fixture
-async def setup(hass: HomeAssistant, freezer: FrozenDateTimeFactory):
+async def setup(hass: HomeAssistant, freezer: FrozenDateTimeFactory, hass_admin_user):
     freezer.move_to("2026-11-01T10:00:00+01:00")
     await hass.config.async_set_time_zone("Europe/Prague")
     notify_calls = async_mock_service(hass, "notify", "mobile_app_test_phone")
@@ -96,7 +101,7 @@ async def setup(hass: HomeAssistant, freezer: FrozenDateTimeFactory):
             "weight": 80,
             "blood_type": "A+",
         },
-        options={"notify_service": "notify.mobile_app_test_phone"},
+        options={"notify_service": "notify.mobile_app_test_phone", "allowed_users": [OWNER, hass_admin_user.id]},
     )
     entry.add_to_hass(hass)
     with (
@@ -135,14 +140,14 @@ async def test_import_plan_and_offer(hass: HomeAssistant, setup) -> None:
 
 async def test_booking_with_sms_code_from_notification(hass: HomeAssistant, setup) -> None:
     manager, fnusa, google, notify_calls = setup
-    hass.bus.async_fire("mobile_app_notification_action", {"action": "DAROVANI_BOOK|plazma|2026-12-31T07:30:00+01:00"})
+    hass.bus.async_fire("mobile_app_notification_action", {"action": "DAROVANI_BOOK|plazma|2026-12-31T07:30:00+01:00"}, context=OWNER_CTX)
     await hass.async_block_till_done()
     fnusa.request_booking_code.assert_awaited_once_with("+420601234567")
     assert manager.status()[0] == "waiting_code"
     code_notes = [c for c in notify_calls if c.data.get("data", {}).get("tag") == "darovani-kod"]
     assert code_notes[-1].data["data"]["actions"][0]["behavior"] == "textInput"
 
-    hass.bus.async_fire("mobile_app_notification_action", {"action": "DAROVANI_OTP", "reply_text": "073-07"})
+    hass.bus.async_fire("mobile_app_notification_action", {"action": "DAROVANI_OTP", "reply_text": "073-07"}, context=OWNER_CTX)
     await hass.async_block_till_done()
     fnusa.verify_booking_code.assert_awaited_once_with("+420601234567", "07307")
     kind, start, person, fields, nonce = fnusa.reserve.await_args.args
@@ -162,9 +167,9 @@ async def test_booking_with_sms_code_from_notification(hass: HomeAssistant, setu
 async def test_cancel_with_admin_code(hass: HomeAssistant, setup) -> None:
     manager, fnusa, google, notify_calls = setup
     res_id = manager.snapshot()["next"]["id"]
-    await hass.services.async_call(DOMAIN, "cancel_reservation", {"reservation_id": res_id}, blocking=True)
+    await hass.services.async_call(DOMAIN, "cancel_reservation", {"reservation_id": res_id}, blocking=True, context=OWNER_CTX)
     fnusa.request_admin_code.assert_awaited_once_with("+420601234567", "KEYBLOODNOV")
-    await hass.services.async_call(DOMAIN, "submit_code", {"code": "0730773537"}, blocking=True)
+    await hass.services.async_call(DOMAIN, "submit_code", {"code": "0730773537"}, blocking=True, context=OWNER_CTX)
     fnusa.admin_login.assert_awaited_once_with("+420601234567", "KEYBLOODNOV", "0730773537")
     fnusa.delete_reservation.assert_awaited_once()
     google.delete_event.assert_awaited_with("existing-nov")
@@ -216,3 +221,35 @@ async def test_options_flow(hass: HomeAssistant, setup) -> None:
     await hass.async_block_till_done()
     assert hass.config_entries.async_get_entry(entry.entry_id).options["blood_to_plasma_days"] == 28
     assert hass.config_entries.async_get_entry(entry.entry_id).options["notify_service"] == "notify.mobile_app_test_phone"
+
+
+async def test_only_owner_can_use_module(hass: HomeAssistant, setup, hass_ws_client) -> None:
+    manager, fnusa, google, notify_calls = setup
+    stranger = Context(user_id="janca-user-id")
+    # Služba od jiného uživatele i bez uživatele (automatizace) je zamítnutá
+    for ctx in (stranger, None):
+        with pytest.raises(Unauthorized):
+            await hass.services.async_call(
+                DOMAIN, "select_slot", {"kind": "plazma", "start": "2026-12-31T07:30:00+01:00"}, blocking=True, context=ctx
+            )
+    # Akce z cizího telefonu se ignoruje
+    hass.bus.async_fire("mobile_app_notification_action", {"action": "DAROVANI_BOOK|plazma|2026-12-31T07:30:00+01:00"}, context=stranger)
+    await hass.async_block_till_done()
+    fnusa.request_booking_code.assert_not_awaited()
+    assert manager.flow is None
+    # Karta pro jiného uživatele nic neukáže
+    manager.allowed_users = lambda: {OWNER}  # bez admina, kterého používá testovací websocket
+    ws = await hass_ws_client(hass)
+    await ws.send_json({"id": 1, "type": "darovani/subscribe"})
+    assert (await ws.receive_json())["success"]
+    assert (await ws.receive_json())["event"] == {"setup": True, "forbidden": True}
+    await ws.send_json({"id": 2, "type": "darovani/postpone_preview", "days": 14})
+    assert not (await ws.receive_json())["success"]
+
+
+async def test_owner_defaults_to_notification_phone_user(hass: HomeAssistant, setup) -> None:
+    manager, *_ = setup
+    MockConfigEntry(domain="mobile_app", data={"device_name": "Test Phone", "user_id": "phone-owner"}).add_to_hass(hass)
+    hass.config_entries.async_update_entry(manager.entry, options={**manager.entry.options, "allowed_users": []})
+    assert manager.allowed_users() == {"phone-owner"}
+    assert not manager.is_allowed(None)

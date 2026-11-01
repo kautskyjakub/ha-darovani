@@ -68,8 +68,12 @@ OPT_PLASMA_INTERVAL_DAYS: Final = "plasma_interval_days"
 OPT_PLASMA_TO_BLOOD_DAYS: Final = "plasma_to_blood_days"
 OPT_SLACK_DAYS: Final = "slack_days"
 OPT_DASHBOARD_PATH: Final = "dashboard_path"
+# Uživatelé HA, kteří smějí modul používat (id). Prázdné = vlastník
+# mobilní aplikace, na kterou chodí notifikace.
+OPT_ALLOWED_USERS: Final = "allowed_users"
 
 DEFAULT_OPTIONS: Final = {
+    OPT_ALLOWED_USERS: [],
     OPT_NOTIFY_SERVICE: "",
     OPT_CALENDAR_ID: "primary",
     OPT_PREFERRED_LATEST: "10:00",

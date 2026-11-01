@@ -38,7 +38,11 @@ Rozsahy oprávnění: `calendar.events` (zápis událostí odběru) a `gmail.rea
 type: custom:darovani-card
 ```
 
-## Soukromí
+## Soukromí a přístup
+
+**Modul je jen pro jednoho člověka.** Kartu, služby i akce z notifikací smí použít jen povolení uživatelé HA. Výchozí je vlastník telefonu, na který chodí notifikace; seznam se dá upravit v Možnostech. Ostatní uživatelé (i administrátoři) na kartě uvidí jen zámek. Služby od nich nebo od automatizací skončí chybou *Unauthorized* a akce z cizího telefonu se ignorují.
+
+Gmail a Google kalendář čte jen integrace pod tvým Google účtem. Obsah e-mailů se nikam v HA nezobrazuje a odkazy pro správu rezervace jsou jen na kartě a v tvém Google kalendáři, ne ve stavech entit. Entity mají jen data a stav, jsou skryté z automatických přehledů a stavy entit jsou v HA technicky vidět všem uživatelům.
 
 Údaje dárce zůstávají v Home Assistantu a odesílají se jen do rezervačního systému FN USA při rezervaci. Odkazy pro správu rezervace jsou osobní (kdo je má, může s rezervací manipulovat) a ukládají se jen do tvého HA a tvého kalendáře.
 

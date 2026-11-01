@@ -208,6 +208,9 @@ class DarovaniCard extends HTMLElement {
   _body() {
     const s = this.s;
     if (!s) return `<div class="empty">Načítám…</div>${this._errorBar()}`;
+    if (s.forbidden) {
+      return `<div class="empty"><ha-icon icon="mdi:lock-outline"></ha-icon><br>Darování je osobní modul jiného uživatele.</div>`;
+    }
     if (s.setup === false) {
       return `<div class="empty">Integrace <b>Darování</b> zatím není nastavená.<br><span class="muted">Nastavení → Zařízení a služby → Přidat integraci.</span></div>`;
     }

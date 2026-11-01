@@ -24,7 +24,7 @@ from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.storage import Store
-from homeassistant.util import dt as dt_util
+from homeassistant.util import dt as dt_util, slugify
 
 from . import planner
 from .api import (
@@ -63,6 +63,7 @@ from .const import (
     MAIL_POLL_FAST_MINUTES,
     MAIL_POLL_MINUTES,
     NOTIFY_GROUP,
+    OPT_ALLOWED_USERS,
     OPT_BLOOD_INTERVAL_MONTHS,
     OPT_BLOOD_TO_PLASMA_DAYS,
     OPT_DASHBOARD_PATH,
@@ -172,6 +173,30 @@ class DonationManager:
             plasma_to_blood_days=int(o[OPT_PLASMA_TO_BLOOD_DAYS]),
             slack_days=int(o[OPT_SLACK_DAYS]),
         )
+
+    # --- Přístup jen pro vlastníka ----------------------------------------
+
+    def allowed_users(self) -> set[str]:
+        """Kdo smí modul používat.
+
+        Výslovně nastavení uživatelé, jinak vlastník mobilní aplikace,
+        na kterou chodí notifikace (mobile_app si pamatuje user_id).
+        Nikdo jiný – ani administrátor – kartu, služby ani notifikační
+        akce nepoužije.
+        """
+        configured = self.opts.get(OPT_ALLOWED_USERS) or []
+        if configured:
+            return set(configured)
+        svc = (self.opts.get(OPT_NOTIFY_SERVICE) or "").replace("notify.mobile_app_", "")
+        owners: set[str] = set()
+        for entry in self.hass.config_entries.async_entries("mobile_app"):
+            name = slugify(entry.data.get("device_name") or entry.title or "")
+            if svc and name == svc and entry.data.get("user_id"):
+                owners.add(entry.data["user_id"])
+        return owners
+
+    def is_allowed(self, user_id: str | None) -> bool:
+        return bool(user_id) and user_id in self.allowed_users()
 
     @property
     def preferred_latest(self) -> time:
@@ -883,6 +908,9 @@ class DonationManager:
     async def _on_notification_action(self, event: Event) -> None:
         action = str(event.data.get("action", ""))
         if not action.startswith("DAROVANI"):
+            return
+        if not self.is_allowed(event.context.user_id):
+            _LOGGER.warning("Akce z notifikace od nepovoleného uživatele %s ignorována", event.context.user_id)
             return
         try:
             if action.startswith(ACTION_BOOK + "|"):

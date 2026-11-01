@@ -68,7 +68,8 @@
           "horizon_days": "Planning horizon",
           "quiet_start": "Quiet hours from",
           "quiet_end": "Quiet hours until",
-          "dashboard_path": "Dashboard path for notifications"
+          "dashboard_path": "Dashboard path for notifications",
+          "allowed_users": "Who may use the module"
         }
       },
       "rules": {

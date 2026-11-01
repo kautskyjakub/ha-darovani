@@ -27,6 +27,7 @@ from .const import (
     DEFAULT_OPTIONS,
     DOMAIN,
     GOOGLE_SCOPES,
+    OPT_ALLOWED_USERS,
     OPT_BLOOD_INTERVAL_MONTHS,
     OPT_BLOOD_TO_PLASMA_DAYS,
     OPT_CALENDAR_ID,
@@ -148,8 +149,18 @@ class DarovaniOptionsFlow(OptionsFlow):
             f"notify.{svc}" for svc in self.hass.services.async_services_for_domain("notify") if svc.startswith("mobile_app_")
         )
         notify_value = current[OPT_NOTIFY_SERVICE] or (notify_services[0] if notify_services else "")
+        users = [
+            selector.SelectOptionDict(value=u.id, label=u.name or u.id)
+            for u in await self.hass.auth.async_get_users()
+            if not u.system_generated and u.is_active
+        ]
+        manager = getattr(self.config_entry, "runtime_data", None)
+        allowed_default = list(current.get(OPT_ALLOWED_USERS) or (manager.allowed_users() if manager else []))
         schema = vol.Schema(
             {
+                vol.Required(OPT_ALLOWED_USERS, default=allowed_default): selector.SelectSelector(
+                    selector.SelectSelectorConfig(options=users, multiple=True, mode=selector.SelectSelectorMode.LIST)
+                ),
                 vol.Required(OPT_NOTIFY_SERVICE, default=notify_value): selector.SelectSelector(
                     selector.SelectSelectorConfig(options=notify_services, custom_value=True)
                 ),

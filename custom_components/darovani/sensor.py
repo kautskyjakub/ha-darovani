@@ -59,7 +59,6 @@ class NextDonationSensor(DarovaniEntity, SensorEntity):
             "druh": KIND_LABEL[view["kind"]],
             "kind": view["kind"],
             "rezervace_id": view["id"],
-            "sprava_rezervace": view["admin_url"],
         }
 
 
