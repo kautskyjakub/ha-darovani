@@ -32,7 +32,14 @@ from .const import FNUSA_BASE_URL, FNUSA_CALENDARS
 _LOGGER = logging.getLogger(__name__)
 PRAGUE = ZoneInfo("Europe/Prague")
 TIMEOUT = aiohttp.ClientTimeout(total=25)
-USER_AGENT = "HomeAssistant-Darovani/1.0 (+https://github.com/kautskyjakub/ha-darovani)"
+# Rezervační web FNUSA pošle SMS kód jen požadavku, který přijde z jejich
+# stránky. Klient proto napodobuje prohlížeč: stejná hlavička User-Agent,
+# Origin a Referer a sdílené cookies ze session (viz open_page).
+USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+)
+PAGE_PATH = {"krev": "/NIS/162/3/Darovani-Krve", "plazma": "/NIS/162/2/TO-Plazmaferezy"}
 
 H_LANG = "FNUSA-Covid19Reservations-Language"
 H_OTP_PHONE = "FNUSA-Covid19Reservations-PreSubmitOtp-Phone"
@@ -119,6 +126,7 @@ class FnusaClient:
 
     def __init__(self, session: aiohttp.ClientSession) -> None:
         self._session = session
+        self._referer = FNUSA_BASE_URL + PAGE_PATH["plazma"]
 
     async def _request(
         self,
@@ -131,7 +139,14 @@ class FnusaClient:
         params: dict[str, str] | None = None,
         expect_json: bool = True,
     ) -> tuple[int, Any]:
-        hdrs = {"User-Agent": USER_AGENT, H_LANG: "cs", "Accept": "application/json"}
+        hdrs = {
+            "User-Agent": USER_AGENT,
+            "Accept": "application/json, text/plain, */*",
+            "Accept-Language": "cs-CZ,cs;q=0.9",
+            "Origin": FNUSA_BASE_URL,
+            "Referer": self._referer,
+            "X-Requested-With": "XMLHttpRequest",
+        }
         if headers:
             hdrs.update(headers)
         try:
@@ -174,13 +189,41 @@ class FnusaClient:
             max_date=_parse_min_max(data.get("MaxDateString")),
         )
 
+    # --- Příprava session (jako otevření stránky v prohlížeči) ------------
+
+    async def open_page(self, kind: str | None = None, admin_key: str | None = None) -> None:
+        """Načte HTML stránku formuláře; získá cookies a nastaví referer.
+
+        Rezervační systém pošle SMS kód jen žádosti, která vypadá jako ze své
+        stránky. Tento krok proto odpovídá tomu, že si člověk formulář otevře.
+        """
+        path = f"/Administration?ReservationKey={admin_key}" if admin_key else PAGE_PATH[kind or "plazma"]
+        self._referer = FNUSA_BASE_URL + path
+        try:
+            async with self._session.get(
+                self._referer,
+                headers={
+                    "User-Agent": USER_AGENT,
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                    "Accept-Language": "cs-CZ,cs;q=0.9",
+                    "Upgrade-Insecure-Requests": "1",
+                },
+                timeout=TIMEOUT,
+            ) as resp:
+                await resp.read()
+                _LOGGER.debug("Načtena stránka formuláře %s -> %s", path.split("?")[0], resp.status)
+        except (aiohttp.ClientError, TimeoutError) as err:
+            _LOGGER.debug("Stránku formuláře se nepodařilo načíst: %s", err)
+
     # --- Rezervace --------------------------------------------------------
 
-    async def request_booking_code(self, phone: str) -> dict[str, Any]:
+    async def request_booking_code(self, phone: str, kind: str | None = None) -> dict[str, Any]:
         """Pošle SMS kód pro novou rezervaci. Vrací validTo/resendAllowedAt."""
+        await self.open_page(kind=kind)
         status, data = await self._request(
             "POST", "/api/PreReservationOtp/RequestNIS", headers={H_OTP_PHONE: normalize_phone(phone)}
         )
+        _LOGGER.info("Žádost o SMS kód (rezervace): stav %s, odpověď %s", status, str(data)[:300])
         if status == 200 and isinstance(data, dict) and data.get("validTo"):
             return data
         if status == 429:
@@ -242,7 +285,7 @@ class FnusaClient:
         status, data = await self._request(
             "POST",
             f"/api/ReserveTerm/NIS/{id_prac}/{kalnum}",
-            headers={"Content-Type": "application/json;charset=UTF-8", H_OTP_NONCE: nonce},
+            headers={"Content-Type": "application/json;charset=UTF-8", H_LANG: "cs", H_OTP_NONCE: nonce},
             json_body=body,
         )
         if status == 401:
@@ -269,7 +312,8 @@ class FnusaClient:
     # --- Správa / zrušení -------------------------------------------------
 
     async def request_admin_code(self, phone: str, key: str) -> None:
-        status, _ = await self._request(
+        await self.open_page(admin_key=key)
+        status, body = await self._request(
             "POST",
             "/api/OtpRequest/NIS",
             headers={
@@ -279,6 +323,7 @@ class FnusaClient:
             },
             expect_json=False,
         )
+        _LOGGER.info("Žádost o SMS kód (správa rezervace): stav %s, odpověď %s", status, str(body)[:300])
         if status != 200:
             raise FnusaError(f"Nepodařilo se odeslat SMS kód pro správu rezervace ({status})", status)
 
