@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Final
 
 DOMAIN: Final = "darovani"
-VERSION: Final = "1.3.0"
+VERSION: Final = "1.3.2"
 
 # --- Druhy odběru --------------------------------------------------------
 KIND_BLOOD: Final = "krev"

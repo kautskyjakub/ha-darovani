@@ -39,6 +39,9 @@ USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
 )
+# Původní (poctivá) identifikace klienta – záloha, když server odmítne
+# hlavičky prohlížeče (403 z firewallu).
+LEGACY_USER_AGENT = "HomeAssistant-Darovani/1.0 (+https://github.com/kautskyjakub/ha-darovani)"
 PAGE_PATH = {"krev": "/NIS/162/3/Darovani-Krve", "plazma": "/NIS/162/2/TO-Plazmaferezy"}
 
 H_LANG = "FNUSA-Covid19Reservations-Language"
@@ -138,15 +141,25 @@ class FnusaClient:
         data: Any = None,
         params: dict[str, str] | None = None,
         expect_json: bool = True,
+        legacy: bool = False,
     ) -> tuple[int, Any]:
-        hdrs = {
-            "User-Agent": USER_AGENT,
-            "Accept": "application/json, text/plain, */*",
-            "Accept-Language": "cs-CZ,cs;q=0.9",
-            "Origin": FNUSA_BASE_URL,
-            "Referer": self._referer,
-            "X-Requested-With": "XMLHttpRequest",
-        }
+        if legacy:
+            # Stejné hlavičky jako verze do 1.3.0 (ta termíny načítala bez potíží)
+            hdrs = {"User-Agent": LEGACY_USER_AGENT, H_LANG: "cs", "Accept": "application/json"}
+        else:
+            hdrs = {
+                "User-Agent": USER_AGENT,
+                "Accept": "application/json, text/plain, */*",
+                "Accept-Language": "cs-CZ,cs;q=0.9",
+                "Referer": self._referer,
+                "X-Requested-With": "XMLHttpRequest",
+                # Webová aplikace posílá jazyk u každého volání API
+                H_LANG: "cs",
+            }
+            # Prohlížeč posílá Origin jen u POST (u GET na vlastní doménu ne);
+            # GET s Origin může firewall vyhodnotit jako podezřelý.
+            if method.upper() != "GET":
+                hdrs["Origin"] = FNUSA_BASE_URL
         if headers:
             hdrs.update(headers)
         try:
@@ -174,7 +187,20 @@ class FnusaClient:
 
     async def available_terms(self, kind: str) -> Terms:
         id_prac, kalnum = FNUSA_CALENDARS[kind]
-        status, data = await self._request("GET", f"/api/AvailableTerms/NIS/{id_prac}/{kalnum}")
+        path = f"/api/AvailableTerms/NIS/{id_prac}/{kalnum}"
+        status, data = await self._request("GET", path)
+        if status == 403:
+            # Firewall odmítl požadavek: 1) otevřít stránku (cookies jako
+            # v prohlížeči) a zkusit znovu, 2) zkusit původní hlavičky.
+            _LOGGER.debug("Volné termíny (%s): 403, odpověď %s", kind, str(data)[:300])
+            await self.open_page(kind=kind)
+            status, data = await self._request("GET", path)
+        if status == 403:
+            status, data = await self._request("GET", path, legacy=True)
+            if status == 200:
+                _LOGGER.info("Volné termíny (%s): načteno až s původními hlavičkami", kind)
+        if status == 403:
+            _LOGGER.warning("Volné termíny (%s): server odmítá přístup (403), odpověď: %s", kind, str(data)[:300])
         if status != 200 or not isinstance(data, dict):
             raise FnusaError(f"Nepodařilo se načíst volné termíny ({status})", status)
         slots: list[datetime] = []
