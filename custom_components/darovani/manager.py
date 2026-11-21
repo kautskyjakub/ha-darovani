@@ -29,6 +29,7 @@ from homeassistant.util import dt as dt_util, slugify
 from . import planner
 from .api import (
     AdminSession,
+    FnusaBlocked,
     FnusaClient,
     FnusaCodeRejected,
     FnusaError,
@@ -153,6 +154,9 @@ class DonationManager:
         self.terms_updated: datetime | None = None
         self.mail_updated: datetime | None = None
         self.last_error: str | None = None
+        # Útlum dotazů na termíny po 403 (blokace IP): do kdy nečekat a kolikátá v řadě
+        self._blocked_until: datetime | None = None
+        self._blocked_count: int = 0
         self._nonce: tuple[str, datetime] | None = None
         self._admin: dict[str, AdminSession] = {}
         self._lock = asyncio.Lock()
@@ -284,7 +288,10 @@ class DonationManager:
     # Pravidelná obnova
     # ------------------------------------------------------------------
 
-    async def _tick_terms(self, _now: datetime) -> None:
+    async def _tick_terms(self, now: datetime) -> None:
+        # Po zablokování (403) server nezatěžovat – čekat do _blocked_until
+        if self._blocked_until and now < self._blocked_until:
+            return
         await self.async_refresh(mail=False)
 
     async def _tick_mail(self, now: datetime) -> None:
@@ -302,6 +309,17 @@ class DonationManager:
             try:
                 self.terms[kind] = await self.fnusa.available_terms(kind)
                 self.last_error = None
+                self._blocked_until = None
+                self._blocked_count = 0
+            except FnusaBlocked as err:
+                # Blokace platí pro celou IP -> druhý kalendář už nezkoušet.
+                # Útlum 1 h, 2 h, 4 h … max. 12 h.
+                self._blocked_count += 1
+                pause = min(2 ** (self._blocked_count - 1), 12)
+                self._blocked_until = dt_util.now() + timedelta(hours=pause)
+                self.last_error = f"{err} Další pokus po {self._blocked_until:%H:%M}."
+                _LOGGER.warning("Volné termíny: %s Další automatický pokus za %s h.", err, pause)
+                break
             except FnusaError as err:
                 self.last_error = str(err)
                 _LOGGER.warning("Volné termíny (%s): %s", kind, err)
