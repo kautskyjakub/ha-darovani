@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Final
 
 DOMAIN: Final = "darovani"
-VERSION: Final = "1.3.2"
+VERSION: Final = "1.3.4"
 
 # --- Druhy odběru --------------------------------------------------------
 KIND_BLOOD: Final = "krev"
@@ -110,7 +110,8 @@ SCOPE_GMAIL_MODIFY: Final = "https://www.googleapis.com/auth/gmail.modify"
 SCOPE_GMAIL_SEND: Final = "https://www.googleapis.com/auth/gmail.send"
 
 # --- Intervaly dotazování -----------------------------------------------
-TERMS_POLL_MINUTES: Final = 20
+# Nejvýš jednou za hodinu – častější dotazy vedly k blokaci IP (403)
+TERMS_POLL_MINUTES: Final = 60
 MAIL_POLL_MINUTES: Final = 30
 MAIL_POLL_FAST_MINUTES: Final = 2  # po rezervaci, dokud nedorazí potvrzení
 
