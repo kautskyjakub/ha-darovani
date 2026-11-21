@@ -1,7 +1,7 @@
 """Řízení celého modulu: stav, plán, rezervace, rušení, odklad, notifikace.
 
 Jak to funguje zjednodušeně:
-  * Každých ~20 minut se stáhnou volné termíny krve i plazmy.
+  * Jednou za hodinu se stáhnou volné termíny krve i plazmy.
   * Z historie a rezervací se spočítá plán na 3 měsíce dopředu.
   * Když je další krok volný k rezervaci a nemocnice už vypsala termíny,
     přijde jedna notifikace s návrhy (ranní časy mají přednost).
