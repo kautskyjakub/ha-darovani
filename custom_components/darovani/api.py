@@ -131,6 +131,7 @@ class FnusaClient:
     def __init__(self, session: aiohttp.ClientSession) -> None:
         self._session = session
         self._referer = FNUSA_BASE_URL + PAGE_PATH["plazma"]
+        self.last_peer: str | None = None
 
     async def _request(
         self,
@@ -167,6 +168,11 @@ class FnusaClient:
                 params=params,
                 timeout=TIMEOUT,
             ) as resp:
+                # Adresa serveru, ke které se HA připojil (IPv4 / IPv6) – pro diagnostiku 403
+                conn = resp.connection
+                if conn is not None and conn.transport is not None:
+                    peer = conn.transport.get_extra_info("peername")
+                    self.last_peer = peer[0] if peer else None
                 text = await resp.text()
                 payload: Any = text
                 if expect_json and text:
@@ -187,7 +193,11 @@ class FnusaClient:
         if status == 403:
             # 403 vrací přímo nginx bez ohledu na hlavičky -> blokace IP adresy.
             # Neopakovat (další pokusy by blokaci jen prodlužovaly).
-            _LOGGER.debug("Volné termíny (%s): 403, odpověď %s", kind, str(data)[:300])
+            family = "IPv6" if self.last_peer and ":" in self.last_peer else "IPv4"
+            _LOGGER.warning(
+                "Volné termíny (%s): 403 přes %s (server %s), odpověď %s",
+                kind, family, self.last_peer, " ".join(str(data).split())[:120],
+            )
             raise FnusaBlocked(
                 "Rezervační systém FNUSA odmítá přístup z této sítě (403). "
                 "Automatické dotazy se dočasně utlumí.",
@@ -315,7 +325,8 @@ class FnusaClient:
             raise FnusaError(f"Rezervace se nezdařila: {str(message)[:200]}", status)
 
         # Dokončení – web vždy volá upload (i bez příloh)
-        form = aiohttp.FormData()
+        # Prázdný FormData by aiohttp poslal jako urlencoded (server vrací 415)
+        form = aiohttp.FormData(default_to_multipart=True)
         up_status, _ = await self._request(
             "POST",
             "/api/UploadFiles/NIS",
